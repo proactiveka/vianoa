@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartGIS Travel Planner - סימולציה</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif}
+body{background:#eef2f7;color:#1e293b;font-size:14px;direction:rtl}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0f2554,#1d4ed8);color:#fff;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.35);position:sticky;top:0;z-index:1000}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#38bdf8,#6366f1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.header-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600}
+
+/* STATS BAR */
+.stats-bar{background:#0f2554;color:#fff;padding:6px 16px;display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.1);overflow-x:auto}
+.stat{display:flex;align-items:center;gap:6px;padding:0 16px;border-left:1px solid rgba(255,255,255,.15);font-size:12px;white-space:nowrap}
+.stat:last-child{border-left:none}
+.stat-val{font-weight:700;font-size:14px;color:#38bdf8}
+.stat-label{color:#94a3b8}
+
+/* LAYOUT */
+.app{display:flex;height:calc(100vh - 80px);overflow:hidden}
+.sidebar{width:320px;background:#fff;overflow-y:auto;border-left:1px solid #e2e8f0;flex-shrink:0;box-shadow:2px 0 8px rgba(0,0,0,.06)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* SIDEBAR SECTIONS */
+.sec{border-bottom:1px solid #f1f5f9}
+.sec-header{padding:10px 16px;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;font-size:13px;font-weight:700;color:#1e3a8a}
+.sec-header:hover{background:#eff6ff}
+.sec-header .icon{font-size:16px;margin-left:8px}
+.sec-header .arrow{transition:transform .2s;color:#94a3b8;font-size:11px}
+.sec-header.open .arrow{transform:rotate(180deg)}
+.sec-body{padding:12px 14px;display:none}
+.sec-body.open{display:block}
+
+/* FORM ELEMENTS */
+label{font-size:11px;color:#64748b;display:block;margin-bottom:3px;font-weight:600}
+select,input[type=text],input[type=date],input[type=number]{width:100%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;margin-bottom:8px;background:#fff;color:#1e293b;transition:border-color .15s}
+select:focus,input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+
+/* SLIDER */
+.slider-wrap{margin-bottom:10px}
+.slider-val{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:3px}
+.slider-val strong{color:#1d4ed8;font-size:14px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:linear-gradient(to left,#3b82f6 var(--pct,50%),#e2e8f0 var(--pct,50%));margin-bottom:4px;border:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#2563eb;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+
+/* CHECKBOXES PILLS */
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1.5px solid #e2e8f0;border-radius:20px;font-size:12px;cursor:pointer;user-select:none;transition:all .15s;color:#64748b;background:#fff}
+.pill:hover{border-color:#93c5fd;color:#1d4ed8}
+.pill.active{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8;font-weight:600}
+.pill input{display:none}
+
+/* STAR RATING */
+.stars-input{display:flex;gap:4px;margin-bottom:8px}
+.star-btn{cursor:pointer;font-size:20px;color:#e2e8f0;transition:color .1s;line-height:1}
+.star-btn.on{color:#f59e0b}
+
+/* TABS */
+.tabs{background:#fff;border-bottom:2px solid #e2e8f0;display:flex;gap:0;overflow-x:auto;flex-shrink:0}
+.tab{padding:11px 18px;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px}
+.tab:hover{color:#2563eb;background:#f8fafc}
+.tab.active{color:#2563eb;border-bottom-color:#2563eb;background:#fff}
+
+/* TAB PANES */
+.tab-content{flex:1;overflow:hidden;position:relative}
+.pane{display:none;height:100%;overflow-y:auto;padding:0}
+.pane.active{display:block}
+.pane.padded{padding:16px}
+#pane-map{padding:0}
+#map{height:100%}
+
+/* CARDS */
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 5px rgba(0,0,0,.07);border:1px solid #f1f5f9}
+.card-h{font-weight:700;font-size:13px;color:#1e3a8a;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+
+/* HOTEL CARD */
+.hotel-card{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid #f1f5f9;border-radius:10px;margin-bottom:10px;background:#fff;transition:box-shadow .15s}
+.hotel-card:hover{box-shadow:0 4px 16px rgba(30,58,138,.1);border-color:#bfdbfe}
+.hotel-card.best-match{border:2px solid #16a34a;background:#f0fdf4}
+.hotel-emoji{width:72px;height:56px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.hotel-info{flex:1;min-width:0}
+.hotel-name{font-weight:700;font-size:13px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hotel-stars{color:#f59e0b;font-size:12px;margin:2px 0}
+.hotel-meta{font-size:11px;color:#64748b;line-height:1.6}
+.hotel-price{text-align:left;flex-shrink:0}
+.h-price-val{font-size:20px;font-weight:800;color:#2563eb;line-height:1}
+.h-price-night{font-size:10px;color:#94a3b8;font-weight:400}
+.h-price-total{font-size:12px;color:#64748b;font-weight:600;margin-top:3px}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:600;margin-left:4px}
+.b-green{background:#dcfce7;color:#15803d}
+.b-blue{background:#dbeafe;color:#1d4ed8}
+.b-amber{background:#fef3c7;color:#d97706}
+.b-red{background:#fee2e2;color:#dc2626}
+.b-purple{background:#ede9fe;color:#7c3aed}
+
+/* FLIGHT CARD */
+.flight-card{border:1px solid #e2e8f0;border-radius:10px;padding:13px 14px;margin-bottom:10px;background:#fff;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s}
+.flight-card:hover{border-color:#93c5fd;box-shadow:0 3px 10px rgba(30,58,138,.1)}
+.flight-card.selected{border-color:#2563eb;background:#eff6ff}
+.airline-logo{width:52px;height:40px;border-radius:7px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.flight-times{flex:1;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
+.ftime{font-size:20px;font-weight:800;color:#0f172a}
+.fdur{text-align:center;font-size:11px;color:#94a3b8;line-height:1.4}
+.fdur-line{display:flex;align-items:center;gap:4px;justify-content:center}
+.fdur-bar{height:1px;background:#cbd5e1;flex:1}
+.fdur-dot{width:6px;height:6px;border-radius:50%;background:#94a3b8}
+.flight-price-col{text-align:left;flex-shrink:0}
+.f-price{font-size:22px;font-weight:800;color:#16a34a}
+.f-price-pp{font-size:10px;color:#94a3b8}
+.f-price-total{font-size:12px;font-weight:600;color:#64748b}
+.f-stops{font-size:11px;color:#64748b;text-align:center;margin-top:2px}
+
+/* TIMELINE / ITINERARY */
+.day-banner{background:linear-gradient(135deg,#0f2554,#1d4ed8);color:#fff;border-radius:8px;padding:9px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.day-banner-title{font-weight:700;font-size:14px}
+.day-banner-sub{font-size:11px;opacity:.8}
+.timeline{padding-right:4px}
+.tl-item{display:flex;gap:0;margin-bottom:4px}
+.tl-left{width:58px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:2px}
+.tl-time{font-size:11px;font-weight:700;color:#2563eb;text-align:center;line-height:1}
+.tl-line{width:2px;background:#e2e8f0;flex:1;margin-top:4px}
+.tl-dot{width:12px;height:12px;border-radius:50%;border:2px solid #2563eb;background:#fff;margin-bottom:4px;flex-shrink:0}
+.tl-dot.meal{border-color:#d97706;background:#fef3c7}
+.tl-dot.transit{border-color:#94a3b8;background:#f1f5f9}
+.tl-content{flex:1;background:#fff;border:1px solid #f1f5f9;border-radius:8px;padding:8px 11px;margin-bottom:6px}
+.tl-title{font-weight:700;font-size:13px;margin-bottom:2px}
+.tl-desc{font-size:11px;color:#64748b;line-height:1.5}
+.tl-chips{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.tl-chip{font-size:10px;background:#f1f5f9;color:#64748b;border-radius:10px;padding:2px 7px}
+
+/* BUDGET */
+.budget-chart-wrap{width:200px;height:200px;margin:0 auto 16px}
+.budget-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f8fafc}
+.budget-cat{display:flex;align-items:center;gap:8px;font-size:13px}
+.budget-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.budget-amt{font-weight:700;font-size:13px}
+.budget-total-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px;border-top:2px solid #1e3a8a;margin-top:4px}
+.budget-total-label{font-size:15px;font-weight:700;color:#1e3a8a}
+.budget-total-val{font-size:20px;font-weight:800;color:#1e3a8a}
+.budget-pp{font-size:12px;color:#64748b;text-align:left;margin-top:2px}
+
+/* AI PANEL */
+.ai-box{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:12px}
+.ai-header{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:#0369a1;margin-bottom:8px}
+.ai-body{font-size:13px;color:#0c4a6e;line-height:1.7}
+.ai-body ul{padding-right:16px}
+.ai-body li{margin-bottom:4px}
+.ai-tag{display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:600;margin:2px}
+
+/* MAP OVERLAY */
+.map-overlay{position:absolute;bottom:16px;right:16px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:800;font-size:12px;min-width:140px}
+.map-overlay h4{font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.leg-dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(0,0,0,.2);flex-shrink:0}
+
+.map-ctrl{position:absolute;top:16px;right:16px;z-index:800;display:flex;flex-direction:column;gap:8px}
+.map-ctrl-btn{background:rgba(255,255,255,.95);border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.1);white-space:nowrap;transition:all .15s;color:#1e3a8a}
+.map-ctrl-btn:hover{background:#1d4ed8;color:#fff}
+.map-ctrl-btn.active{background:#1d4ed8;color:#fff}
+
+/* ATTRACTION CARD */
+.attr-card{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid #f1f5f9;border-radius:8px;margin-bottom:8px;background:#fff;cursor:pointer;transition:all .15s}
+.attr-card:hover{border-color:#93c5fd}
+.attr-emoji{font-size:28px;width:44px;text-align:center;flex-shrink:0}
+.attr-info{flex:1}
+.attr-name{font-weight:700;font-size:13px}
+.attr-meta{font-size:11px;color:#64748b;line-height:1.7}
+.attr-cost{font-size:13px;font-weight:700;color:#16a34a}
+.attr-dist{display:flex;align-items:center;gap:3px;font-size:11px;color:#64748b}
+
+/* EVENTS */
+.event-card{border-right:3px solid #6366f1;padding:10px 12px;background:#faf5ff;border-radius:0 8px 8px 0;margin-bottom:8px}
+.event-name{font-weight:700;font-size:13px;color:#4c1d95}
+.event-meta{font-size:11px;color:#7c3aed;margin-top:2px}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:#94a3b8}
+.empty-icon{font-size:48px;margin-bottom:12px;display:block}
+.empty-text{font-size:14px;font-weight:600}
+
+/* REFRESH INDICATOR */
+.updating{opacity:.5;transition:opacity .2s}
+
+/* BTN */
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .15s}
+.btn-primary{background:#2563eb;color:#fff;display:block;width:100%;margin-top:4px}
+.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f2554;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.notif.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">&#x1F5FA;</div>
+    <span>SmartGIS Travel Planner</span>
+  </div>
+  <div class="header-badge">&#x1F9EA; מצב סימולציה</div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat"><span class="stat-label">יעד</span><span class="stat-val" id="s-dest">לונדון</span></div>
+  <div class="stat"><span class="stat-label">ימים</span><span class="stat-val" id="s-days">7</span></div>
+  <div class="stat"><span class="stat-label">לילות</span><span class="stat-val" id="s-nights">6</span></div>
+  <div class="stat"><span class="stat-label">מטיילים</span><span class="stat-val" id="s-travelers">2</span></div>
+  <div class="stat"><span class="stat-label">אטרקציות</span><span class="stat-val" id="s-attrs">10</span></div>
+  <div class="stat"><span class="stat-label">עלות משוערת</span><span class="stat-val" id="s-cost">$2,450</span></div>
+  <div class="stat"><span class="stat-label">מטבע מקומי</span><span class="stat-val" id="s-currency">GBP</span></div>
+</div>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- DESTINATION -->
+    <div class="sec">
+      <div class="sec-header open" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F30D;</span> יעד ומוצא</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body open">
+        <div class="row2">
+          <div>
+            <label>מדינת מוצא</label>
+            <select id="originCountry" onchange="update()">
+              <option>ישראל</option><option>ארה"ב</option><option>בריטניה</option>
+            </select>
+          </div>
+          <div>
+            <label>עיר מוצא</label>
+            <select id="originCity" onchange="update()">
+              <option>תל אביב</option><option>ירושלים</option><option>חיפה</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label>מדינת יעד</label>
+            <select id="destCountry" onchange="syncDestCity()">
+              <option>בריטניה</option><option>צרפת</option><option>פורטוגל</option>
+              <option>צ'כיה</option><option>ספרד</option>
+            </select>
+          </div>
+          <div>
+            <label>עיר יעד</label>
+            <select id="destCity" onchange="update()">
+              <option>לונדון</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATES -->
+    <div class="sec">
+      <div class="sec-header open" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F4C5;</span> תאריכים</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body open">
+        <div class="row2">
+          <div>
+            <label>תאריך יציאה</label>
+            <input type="date" id="depDate" value="2025-06-15" onchange="update()">
+          </div>
+          <div>
+            <label>תאריך חזרה</label>
+            <input type="date" id="retDate" value="2025-06-22" onchange="update()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRAVELERS -->
+    <div class="sec">
+      <div class="sec-header open" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F465;</span> הרכב מטיילים</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body open">
+        <div class="row2">
+          <div>
+            <label>מבוגרים</label>
+            <select id="adults" onchange="update()">
+              <option>1</option><option selected>2</option><option>3</option><option>4</option>
+              <option>5</option><option>6</option>
+            </select>
+          </div>
+          <div>
+            <label>ילדים</label>
+            <select id="children" onchange="update()">
+              <option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option>
+            </select>
+          </div>
+        </div>
+        <label>קבוצת גיל מבוגרים</label>
+        <select id="adultAge" onchange="update()">
+          <option value="young">18-30 - צעירים</option>
+          <option value="mid" selected>31-50 - משפחות</option>
+          <option value="senior">51+ - בוגרים</option>
+        </select>
+        <div id="children-ages" style="display:none">
+          <label>גיל ילדים</label>
+          <select id="childAge" onchange="update()">
+            <option value="toddler">0-2 - פעוטות</option>
+            <option value="child" selected>3-12 - ילדים</option>
+            <option value="teen">13-17 - נוער</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLIGHTS -->
+    <div class="sec">
+      <div class="sec-header" onclick="toggleSec(this)">
+        <span><span class="icon">&#x2708;&#xFE0F;</span> טיסות</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body">
+        <div class="row2">
+          <div>
+            <label>שדה תעופה מוצא</label>
+            <select id="depAirport" onchange="update()">
+              <option value="TLV">TLV - נתב"ג</option>
+              <option value="SDV">SDV - שדה דב</option>
+            </select>
+          </div>
+          <div>
+            <label>שדה תעופה יעד</label>
+            <select id="arrAirport" onchange="update()">
+              <option>LHR - היתרו</option>
+            </select>
+          </div>
+        </div>
+        <label>מחלקה</label>
+        <select id="flightClass" onchange="update()">
+          <option value="economy">Economy</option>
+          <option value="business">Business</option>
+          <option value="first">First Class</option>
+        </select>
+        <label>עצירות</label>
+        <select id="stops" onchange="update()">
+          <option value="any">כל אפשרות</option>
+          <option value="direct">ישיר בלבד</option>
+          <option value="one">עצירה אחת</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ACCOMMODATION -->
+    <div class="sec">
+      <div class="sec-header open" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F3E8;</span> לינה</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body open">
+        <div class="slider-wrap">
+          <div class="slider-val">
+            <span>תקציב ללילה</span>
+            <strong id="budgetVal">$120</strong>
+          </div>
+          <input type="range" id="budget" min="30" max="500" step="10" value="120" oninput="syncSlider(this,'budgetVal','$','');update()">
+        </div>
+        <label>סוג לינה</label>
+        <div class="pills" id="hotel-type-pills">
+          <label class="pill active"><input type="radio" name="hotelType" value="all" checked onchange="update()"> כל סוג</label>
+          <label class="pill"><input type="radio" name="hotelType" value="מלון" onchange="update()"> &#x1F3E8; מלון</label>
+          <label class="pill"><input type="radio" name="hotelType" value="Airbnb" onchange="update()"> &#x1F3E0; Airbnb</label>
+        </div>
+        <label>דירוג מינימלי</label>
+        <div class="stars-input" id="starRating">
+          <span class="star-btn on" data-val="1" onclick="setStars(1)">&#x2605;</span>
+          <span class="star-btn on" data-val="2" onclick="setStars(2)">&#x2605;</span>
+          <span class="star-btn on" data-val="3" onclick="setStars(3)">&#x2605;</span>
+          <span class="star-btn" data-val="4" onclick="setStars(4)">&#x2606;</span>
+          <span class="star-btn" data-val="5" onclick="setStars(5)">&#x2606;</span>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-val">
+            <span>מרחק מרבי מהמרכז</span>
+            <strong id="distVal">3 ק"מ</strong>
+          </div>
+          <input type="range" id="maxDist" min="0.5" max="6" step="0.5" value="3" oninput="syncSliderDist(this);update()">
+        </div>
+        <label>קרבה לתחב"צ</label>
+        <div class="pills">
+          <label class="pill active"><input type="checkbox" id="nearMetro" checked onchange="update()"> &#x1F687; מטרו/רכבת</label>
+          <label class="pill active"><input type="checkbox" id="nearBus" checked onchange="update()"> &#x1F68C; אוטובוס</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATTRACTIONS -->
+    <div class="sec">
+      <div class="sec-header open" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F3AF;</span> אטרקציות</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body open">
+        <label>קטגוריות ראשיות (ניתן לבחור כמה)</label>
+        <div class="pills" id="cat-pills">
+          <label class="pill active"><input type="checkbox" value="תרבות" checked onchange="update()"> &#x1F3DB; תרבות</label>
+          <label class="pill active"><input type="checkbox" value="היסטוריה" checked onchange="update()"> &#x1F3F0; היסטוריה</label>
+          <label class="pill"><input type="checkbox" value="טבע" onchange="update()"> &#x1F333; טבע</label>
+          <label class="pill"><input type="checkbox" value="קניות" onchange="update()"> &#x1F6CD; קניות</label>
+          <label class="pill"><input type="checkbox" value="בילוי" onchange="update()"> &#x1F3A1; בילוי</label>
+          <label class="pill"><input type="checkbox" value="מדע" onchange="update()"> &#x1F52D; מדע</label>
+          <label class="pill"><input type="checkbox" value="דת" onchange="update()"> &#x26EA; דת</label>
+          <label class="pill"><input type="checkbox" value="אדריכלות" onchange="update()"> &#x1F3DB; אדריכלות</label>
+        </div>
+        <label>עדיפות מסלול</label>
+        <select id="routeOpt" onchange="update()">
+          <option value="proximity">מרחק מינימלי (GIS Routing)</option>
+          <option value="rating">פופולריות ראשונה</option>
+          <option value="category">לפי קטגוריה</option>
+        </select>
+        <label>אטרקציות ליום (מקסימום)</label>
+        <select id="attrsPerDay" onchange="update()">
+          <option>2</option><option>3</option><option selected>4</option><option>5</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TRANSPORT -->
+    <div class="sec">
+      <div class="sec-header" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F68C;</span> תחבורה מקומית</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body">
+        <label>סוג ניידות</label>
+        <div class="pills">
+          <label class="pill active"><input type="radio" name="transport" value="public" checked onchange="update()"> &#x1F687; ציבורית</label>
+          <label class="pill"><input type="radio" name="transport" value="rental" onchange="update()"> &#x1F697; השכרה</label>
+          <label class="pill"><input type="radio" name="transport" value="walk" onchange="update()"> &#x1F6B6; הליכה</label>
+          <label class="pill"><input type="radio" name="transport" value="mix" onchange="update()"> &#x1F500; שילוב</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRUISE -->
+    <div class="sec">
+      <div class="sec-header" onclick="toggleSec(this)">
+        <span><span class="icon">&#x1F6A2;</span> שייט</span>
+        <span class="arrow">&#x25BC;</span>
+      </div>
+      <div class="sec-body">
+        <label class="pill" style="cursor:pointer;display:inline-flex;margin-bottom:10px">
+          <input type="checkbox" id="cruiseEnabled" onchange="toggleCruise(this)"> &nbsp;הוסף שייט לתכנית
+        </label>
+        <div id="cruise-fields" style="display:none">
+          <label>נמל מוצא</label>
+          <select id="cruiseFrom" onchange="update()">
+            <option>ברצלונה - ספרד</option><option>ג'נובה - איטליה</option>
+            <option>אתונה - יוון</option><option>ונציה - איטליה</option>
+          </select>
+          <label>נמל יעד</label>
+          <select id="cruiseTo" onchange="update()">
+            <option>מרשיי - צרפת</option><option>נאפולי - איטליה</option>
+            <option>דובר - בריטניה</option><option>אמסטרדם - הולנד</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px">
+      <button class="btn btn-primary" onclick="runSimulation()">&#x1F504; עדכן סימולציה</button>
+    </div>
+
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('map',this)">&#x1F5FA; מפה אינטראקטיבית</div>
+      <div class="tab" onclick="showTab('itinerary',this)">&#x1F4CB; תוכנית יומית</div>
+      <div class="tab" onclick="showTab('hotels',this)">&#x1F3E8; מלונות</div>
+      <div class="tab" onclick="showTab('flights',this)">&#x2708;&#xFE0F; טיסות</div>
+      <div class="tab" onclick="showTab('budget',this)">&#x1F4B0; תקציב</div>
+      <div class="tab" onclick="showTab('ai',this)">&#x1F916; ניתוח AI</div>
+    </div>
+
+    <!-- TAB CONTENT -->
+    <div class="tab-content">
+
+      <!-- MAP -->
+      <div class="pane active" id="pane-map">
+        <div id="map"></div>
+        <div class="map-ctrl">
+          <button class="map-ctrl-btn active" id="btn-layer-hotels" onclick="toggleLayer('hotels',this)">&#x1F3E8; מלונות</button>
+          <button class="map-ctrl-btn active" id="btn-layer-attrs" onclick="toggleLayer('attrs',this)">&#x1F4CD; אטרקציות</button>
+          <button class="map-ctrl-btn active" id="btn-layer-route" onclick="toggleLayer('route',this)">&#x1F9ED; מסלול</button>
+          <button class="map-ctrl-btn" id="btn-layer-events" onclick="toggleLayer('events',this)">&#x1F3AA; אירועים</button>
+          <button class="map-ctrl-btn" id="btn-layer-zones" onclick="toggleLayer('zones',this)">&#x1F4F9; אזורים</button>
+        </div>
+        <div class="map-overlay">
+          <h4>&#x1F4CC; מקרא</h4>
+          <div class="legend-item"><div class="leg-dot" style="background:#2563eb"></div> מלון נבחר</div>
+          <div class="legend-item"><div class="leg-dot" style="background:#16a34a"></div> אטרקציה</div>
+          <div class="legend-item"><div class="leg-dot" style="background:#d97706"></div> אוכל / ריענון</div>
+          <div class="legend-item"><div class="leg-dot" style="background:#7c3aed"></div> אירוע</div>
+          <div class="legend-item"><div class="leg-dot" style="background:#ef4444;border-radius:2px"></div> מסלול הליכה</div>
+        </div>
+      </div>
+
+      <!-- ITINERARY -->
+      <div class="pane padded" id="pane-itinerary">
+        <div id="itinerary-content"></div>
+      </div>
+
+      <!-- HOTELS -->
+      <div class="pane padded" id="pane-hotels">
+        <div id="hotels-content"></div>
+      </div>
+
+      <!-- FLIGHTS -->
+      <div class="pane padded" id="pane-flights">
+        <div id="flights-content"></div>
+      </div>
+
+      <!-- BUDGET -->
+      <div class="pane padded" id="pane-budget">
+        <div id="budget-content"></div>
+      </div>
+
+      <!-- AI -->
+      <div class="pane padded" id="pane-ai">
+        <div id="ai-content"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+/* =========================================================
+   DATA
+   ========================================================= */
+const CITIES = {
+  'לונדון': {
+    country:'בריטניה', lat:51.5074, lng:-0.1278,
+    airports:['LHR - היתרו','LGW - גטוויק','STN - סטנסטד'],
+    currency:'GBP', rate:4.65,
+    hotels:[
+      {name:'The Savoy London',stars:5,price:280,dist:0.8,metro:0.1,rating:9.2,type:'מלון',lat:51.5107,lng:-0.1204,emoji:'🏨'},
+      {name:'Premier Inn Southwark',stars:3,price:85,dist:1.2,metro:0.3,rating:8.1,type:'מלון',lat:51.5057,lng:-0.0857,emoji:'🏩'},
+      {name:'Hyde Park Boutique',stars:4,price:150,dist:2.1,metro:0.2,rating:8.7,type:'מלון',lat:51.5054,lng:-0.1773,emoji:'🏨'},
+      {name:'East London Loft',stars:0,price:65,dist:3.5,metro:0.5,rating:4.8,type:'Airbnb',lat:51.5299,lng:-0.0748,emoji:'🏠'},
+      {name:'Covent Garden Hotel',stars:4,price:165,dist:0.5,metro:0.05,rating:9.0,type:'מלון',lat:51.5136,lng:-0.1239,emoji:'🏨'},
+    ],
+    attractions:[
+      {name:'המוזיאון הבריטי',cat:'תרבות',sub:'מוזיאון',lat:51.5194,lng:-0.1270,dur:180,walk:0.8,cost:0,emoji:'🏛️',day:1},
+      {name:'מגדל לונדון',cat:'היסטוריה',sub:'אנדרטה',lat:51.5081,lng:-0.0759,dur:120,walk:0.3,cost:29,emoji:'🏰',day:2},
+      {name:'גן היד',cat:'טבע',sub:'פארק',lat:51.5073,lng:-0.1657,dur:90,walk:0.5,cost:0,emoji:'🌳',day:2},
+      {name:'ארמון בקינגהם',cat:'היסטוריה',sub:'ארמון',lat:51.5014,lng:-0.1419,dur:60,walk:0.4,cost:0,emoji:'👑',day:1},
+      {name:'גלגל לונדון',cat:'בילוי',sub:'אטרקציה',lat:51.5033,lng:-0.1195,dur:60,walk:0.2,cost:32,emoji:'🎡',day:3},
+      {name:'גלריית טייט מודרן',cat:'תרבות',sub:'מוזיאון',lat:51.5076,lng:-0.0994,dur:120,walk:0.3,cost:0,emoji:'🎨',day:3},
+      {name:'שוק קובנט גארדן',cat:'קניות',sub:'שוק',lat:51.5122,lng:-0.1233,dur:90,walk:0.6,cost:0,emoji:'🛍️',day:1},
+      {name:'גשר לונדון',cat:'היסטוריה',sub:'גשר',lat:51.5055,lng:-0.0754,dur:30,walk:0.1,cost:0,emoji:'🌉',day:2},
+      {name:'שוק פורטובלו',cat:'קניות',sub:'שוק',lat:51.5171,lng:-0.2016,dur:120,walk:0.4,cost:0,emoji:'🎪',day:4},
+      {name:'גריניץ\' - המצפה',cat:'מדע',sub:'מצפה',lat:51.4778,lng:-0.0015,dur:90,walk:0.5,cost:18,emoji:'🔭',day:4},
+    ],
+    events:[
+      {name:'ליגה: ארסנל vs. צ\'לסי',type:'ספורט',venue:'Emirates Stadium',emoji:'⚽'},
+      {name:'קונצרט - Royal Albert Hall',type:'מוזיקה',venue:'Royal Albert Hall',emoji:'🎵'},
+      {name:'תערוכה - National Gallery',type:'תרבות',venue:'National Gallery',emoji:'🖼️'},
+    ],
+    baseFlightPrice:420, flightDur:'4:40',
+    zones:['סיטי ומזרח','מרכז ווסט אנד','דרום הטיימס','מערב לונדון','גריניץ\''],
+  },
+  'פריז': {
+    country:'צרפת', lat:48.8566, lng:2.3522,
+    airports:['CDG - שארל דה גול','ORY - אורלי'],
+    currency:'EUR', rate:3.85,
+    hotels:[
+      {name:'Hôtel de Crillon',stars:5,price:320,dist:0.5,metro:0.1,rating:9.5,type:'מלון',lat:48.8678,lng:2.3208,emoji:'🏨'},
+      {name:'Ibis Tour Eiffel',stars:3,price:95,dist:2.0,metro:0.2,rating:7.8,type:'מלון',lat:48.8541,lng:2.2981,emoji:'🏩'},
+      {name:'Le Marais Boutique',stars:4,price:145,dist:1.3,metro:0.1,rating:8.9,type:'מלון',lat:48.8584,lng:2.3504,emoji:'🏨'},
+      {name:'Montmartre Airbnb',stars:0,price:75,dist:3.2,metro:0.3,rating:4.6,type:'Airbnb',lat:48.8867,lng:2.3431,emoji:'🏠'},
+      {name:'Latin Quarter Hotel',stars:4,price:125,dist:1.1,metro:0.15,rating:8.6,type:'מלון',lat:48.8502,lng:2.3470,emoji:'🏨'},
+    ],
+    attractions:[
+      {name:'מגדל אייפל',cat:'היסטוריה',sub:'אנדרטה',lat:48.8584,lng:2.2945,dur:120,walk:0.5,cost:26,emoji:'🗼',day:1},
+      {name:'מוזיאון הלובר',cat:'תרבות',sub:'מוזיאון',lat:48.8606,lng:2.3376,dur:240,walk:0.8,cost:17,emoji:'🏛️',day:2},
+      {name:'ארמון ורסאי',cat:'היסטוריה',sub:'ארמון',lat:48.8049,lng:2.1204,dur:300,walk:1.2,cost:20,emoji:'👑',day:4},
+      {name:'מוזיאון אורסה',cat:'תרבות',sub:'מוזיאון',lat:48.8600,lng:2.3266,dur:150,walk:0.4,cost:16,emoji:'🎨',day:2},
+      {name:'נוטרדאם',cat:'דת',sub:'כנסייה',lat:48.8530,lng:2.3499,dur:90,walk:0.3,cost:0,emoji:'⛪',day:3},
+      {name:'שאנז אליזה',cat:'קניות',sub:'רחוב',lat:48.8698,lng:2.3079,dur:120,walk:1.2,cost:0,emoji:'🛍️',day:1},
+      {name:'מונמרטר - סקרה קר',cat:'דת',sub:'כנסייה',lat:48.8867,lng:2.3431,dur:60,walk:0.6,cost:0,emoji:'⛪',day:3},
+      {name:'מרכז פומפידו',cat:'תרבות',sub:'מוזיאון',lat:48.8606,lng:2.3522,dur:120,walk:0.4,cost:14,emoji:'🎨',day:3},
+    ],
+    events:[
+      {name:'תצוגת אופנה - Grand Palais',type:'תרבות',venue:'Grand Palais',emoji:'👗'},
+      {name:'קונצרט - Opéra Garnier',type:'מוזיקה',venue:'Opéra Garnier',emoji:'🎭'},
+      {name:'רולאן גארוס - פתוח הצרפתי',type:'ספורט',venue:'Roland Garros',emoji:'🎾'},
+    ],
+    baseFlightPrice:380, flightDur:'4:10',
+    zones:['מרכז פריז','מרה','מונמרטר','הרובע הלטיני','ורסאי'],
+  },
+  'ליסבון': {
+    country:'פורטוגל', lat:38.7169, lng:-9.1399,
+    airports:['LIS - הומבורטו דלגאדו'],
+    currency:'EUR', rate:3.85,
+    hotels:[
+      {name:'Bairro Alto Hotel',stars:5,price:180,dist:0.7,metro:0.2,rating:9.3,type:'מלון',lat:38.7127,lng:-9.1453,emoji:'🏨'},
+      {name:'Alfama Hostel Boutique',stars:3,price:70,dist:1.5,metro:0.4,rating:8.2,type:'מלון',lat:38.7112,lng:-9.1316,emoji:'🏩'},
+      {name:'Belém River Hotel',stars:4,price:120,dist:3.0,metro:0.3,rating:8.8,type:'מלון',lat:38.6970,lng:-9.2063,emoji:'🏨'},
+      {name:'Baixa Apartment',stars:0,price:55,dist:0.3,metro:0.1,rating:4.5,type:'Airbnb',lat:38.7155,lng:-9.1394,emoji:'🏠'},
+      {name:'Chiado Design Hotel',stars:4,price:140,dist:0.9,metro:0.15,rating:9.0,type:'מלון',lat:38.7109,lng:-9.1417,emoji:'🏨'},
+    ],
+    attractions:[
+      {name:'מנזר ז\'רונימוש',cat:'היסטוריה',sub:'מנזר',lat:38.6978,lng:-9.2068,dur:120,walk:0.4,cost:10,emoji:'⛪',day:3},
+      {name:'מגדל בלם',cat:'היסטוריה',sub:'מגדל',lat:38.6916,lng:-9.2160,dur:60,walk:0.3,cost:6,emoji:'🏰',day:3},
+      {name:'טירת סאו ז\'ורז\'',cat:'היסטוריה',sub:'טירה',lat:38.7139,lng:-9.1338,dur:90,walk:0.5,cost:15,emoji:'🏰',day:1},
+      {name:'שכונת אלפמה',cat:'תרבות',sub:'שכונה',lat:38.7112,lng:-9.1316,dur:120,walk:1.0,cost:0,emoji:'🏘️',day:1},
+      {name:'טראם 28 - שורה ציורית',cat:'תרבות',sub:'תחבורה',lat:38.7133,lng:-9.1367,dur:60,walk:0.2,cost:3,emoji:'🚃',day:2},
+      {name:'LX Factory - שוק אמנות',cat:'קניות',sub:'שוק',lat:38.7029,lng:-9.1754,dur:90,walk:0.4,cost:0,emoji:'🎨',day:2},
+      {name:'גשר 25 דה אברייל',cat:'היסטוריה',sub:'גשר',lat:38.6891,lng:-9.1774,dur:30,walk:0.2,cost:0,emoji:'🌉',day:3},
+      {name:'מוזיאון התגליות',cat:'מדע',sub:'מוזיאון',lat:38.6941,lng:-9.2056,dur:90,walk:0.3,cost:10,emoji:'🔭',day:3},
+    ],
+    events:[
+      {name:'פסטיבל פאדו - מוזיקה פורטוגזית',type:'מוזיקה',venue:'Casa de Fados',emoji:'🎵'},
+      {name:'ליסבון מרתון',type:'ספורט',venue:'Praça do Comércio',emoji:'🏃'},
+      {name:'תערוכה - MAAT Museum',type:'תרבות',venue:'MAAT Museum',emoji:'🖼️'},
+    ],
+    baseFlightPrice:310, flightDur:'5:20',
+    zones:['באיחה ושיאדו','אלפמה','באיירו אלטו','בלם','פרקינה'],
+  },
+  'פראג': {
+    country:'צ\'כיה', lat:50.0755, lng:14.4378,
+    airports:['PRG - ואצלב האבל'],
+    currency:'CZK', rate:0.165,
+    hotels:[
+      {name:'Four Seasons Prague',stars:5,price:210,dist:0.3,metro:0.2,rating:9.4,type:'מלון',lat:50.0862,lng:14.4109,emoji:'🏨'},
+      {name:'Wenceslas Square Inn',stars:3,price:75,dist:0.8,metro:0.1,rating:7.9,type:'מלון',lat:50.0818,lng:14.4281,emoji:'🏩'},
+      {name:'Malá Strana Boutique',stars:4,price:115,dist:1.2,metro:0.3,rating:8.7,type:'מלון',lat:50.0883,lng:14.4031,emoji:'🏨'},
+      {name:'Vinohrady Studio',stars:0,price:50,dist:2.5,metro:0.4,rating:4.7,type:'Airbnb',lat:50.0717,lng:14.4394,emoji:'🏠'},
+      {name:'Old Town Square Hotel',stars:4,price:130,dist:0.1,metro:0.15,rating:9.1,type:'מלון',lat:50.0875,lng:14.4213,emoji:'🏨'},
+    ],
+    attractions:[
+      {name:'טירת פראג',cat:'היסטוריה',sub:'טירה',lat:50.0910,lng:14.4015,dur:180,walk:0.8,cost:12,emoji:'🏰',day:1},
+      {name:'גשר קרל',cat:'היסטוריה',sub:'גשר',lat:50.0865,lng:14.4116,dur:60,walk:0.4,cost:0,emoji:'🌉',day:1},
+      {name:'כיכר העיר העתיקה',cat:'היסטוריה',sub:'כיכר',lat:50.0875,lng:14.4213,dur:90,walk:0.5,cost:0,emoji:'🏛️',day:2},
+      {name:'שעון פראג - אורלוי',cat:'היסטוריה',sub:'שעון',lat:50.0870,lng:14.4207,dur:30,walk:0.1,cost:0,emoji:'🕐',day:2},
+      {name:'גן ולדשטיין',cat:'טבע',sub:'גן',lat:50.0896,lng:14.4041,dur:60,walk:0.3,cost:0,emoji:'🌿',day:3},
+      {name:'מוזיאון פראג',cat:'תרבות',sub:'מוזיאון',lat:50.0782,lng:14.4288,dur:120,walk:0.4,cost:8,emoji:'🏛️',day:3},
+      {name:'שכונה יהודית - ג\'וסיפוב',cat:'היסטוריה',sub:'שכונה',lat:50.0901,lng:14.4170,dur:120,walk:0.6,cost:13,emoji:'✡️',day:2},
+      {name:'גבעת פטז\'ין',cat:'טבע',sub:'פארק',lat:50.0818,lng:14.3962,dur:90,walk:0.5,cost:0,emoji:'🌳',day:3},
+    ],
+    events:[
+      {name:'פסטיבל בירה - פראג',type:'בילוי',venue:'Letná Park',emoji:'🍺'},
+      {name:'קונצרט קאמרי בלובר',type:'מוזיקה',venue:'Rudolfinum',emoji:'🎻'},
+      {name:'שוק חג המולד המסורתי',type:'תרבות',venue:'Old Town Square',emoji:'🎄'},
+    ],
+    baseFlightPrice:290, flightDur:'3:50',
+    zones:['העיר העתיקה','מלה סטרנה','הרדצ\'אני','נובה מסטו','וינוהרדי'],
+  },
+  'ברצלונה': {
+    country:'ספרד', lat:41.3851, lng:2.1734,
+    airports:['BCN - אל פראט'],
+    currency:'EUR', rate:3.85,
+    hotels:[
+      {name:'Hotel Arts Barcelona',stars:5,price:230,dist:2.0,metro:0.15,rating:9.2,type:'מלון',lat:41.3875,lng:2.1979,emoji:'🏨'},
+      {name:'Generator Gothic Quarter',stars:3,price:80,dist:0.5,metro:0.1,rating:8.0,type:'מלון',lat:41.3823,lng:2.1747,emoji:'🏩'},
+      {name:'Gràcia Neighborhood',stars:4,price:125,dist:1.8,metro:0.2,rating:8.8,type:'מלון',lat:41.4037,lng:2.1556,emoji:'🏨'},
+      {name:'El Born Airbnb',stars:0,price:70,dist:1.2,metro:0.2,rating:4.6,type:'Airbnb',lat:41.3848,lng:2.1829,emoji:'🏠'},
+      {name:'Passeig de Gràcia Suite',stars:5,price:195,dist:1.0,metro:0.05,rating:9.3,type:'מלון',lat:41.3929,lng:2.1649,emoji:'🏨'},
+    ],
+    attractions:[
+      {name:'לה סגרדה פמיליה',cat:'אדריכלות',sub:'כנסייה',lat:41.4036,lng:2.1744,dur:150,walk:0.6,cost:26,emoji:'⛪',day:1},
+      {name:'פארק גואל',cat:'טבע',sub:'פארק',lat:41.4145,lng:2.1527,dur:120,walk:0.7,cost:10,emoji:'🌳',day:2},
+      {name:'לה רמבלה',cat:'קניות',sub:'רחוב',lat:41.3809,lng:2.1733,dur:90,walk:1.1,cost:0,emoji:'🛍️',day:1},
+      {name:'שוק לה בוקריה',cat:'קניות',sub:'שוק',lat:41.3818,lng:2.1715,dur:60,walk:0.3,cost:0,emoji:'🥦',day:1},
+      {name:'מוזיאון פיקאסו',cat:'תרבות',sub:'מוזיאון',lat:41.3851,lng:2.1810,dur:120,walk:0.4,cost:14,emoji:'🎨',day:3},
+      {name:'ארמון גואל',cat:'אדריכלות',sub:'ארמון',lat:41.3773,lng:2.1742,dur:90,walk:0.5,cost:12,emoji:'🏛️',day:3},
+      {name:'ברצלונטה - חוף הים',cat:'טבע',sub:'חוף',lat:41.3790,lng:2.1927,dur:120,walk:0.8,cost:0,emoji:'🏖️',day:2},
+      {name:'קאזה בטיו - גאודי',cat:'אדריכלות',sub:'בית',lat:41.3919,lng:2.1650,dur:90,walk:0.3,cost:29,emoji:'🏠',day:3},
+    ],
+    events:[
+      {name:'ברסה vs. ריאל מדריד',type:'ספורט',venue:'Camp Nou',emoji:'⚽'},
+      {name:'פסטיבל La Mercè',type:'תרבות',venue:'Plaça de Catalunya',emoji:'🎉'},
+      {name:'קונצרט פלמנקו',type:'מוזיקה',venue:'Palau de la Música',emoji:'💃'},
+    ],
+    baseFlightPrice:350, flightDur:'4:30',
+    zones:['הרובע הגותי','אל בורן','ברצלונטה','גרסיה','ל\'אישמפל'],
+  },
+};
+
+const COUNTRY_CITY = {
+  'בריטניה':['לונדון'],'צרפת':['פריז'],'פורטוגל':['ליסבון'],
+  'צ\'כיה':['פראג'],'ספרד':['ברצלונה'],
+};
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = {
+  dest:'לונדון', days:7, nights:6,
+  adults:2, children:0, adultAge:'mid', childAge:'child',
+  budget:120, hotelType:'all', minStars:3, maxDist:3,
+  cats:['תרבות','היסטוריה'],
+  routeOpt:'proximity', attrsPerDay:4,
+  transport:'public', flightClass:'economy', stops:'any',
+  cruise:false, selectedHotel:0, selectedFlight:0,
+};
+
+/* =========================================================
+   MAP
+   ========================================================= */
+let map, layerHotels=null, layerAttrs=null, layerRoute=null, layerEvents=null, layerZones=null;
+let layers = {hotels:true, attrs:true, route:true, events:false, zones:false};
+
+function initMap(){
+  const city = CITIES[state.dest];
+  map = L.map('map', {zoomControl:true, attributionControl:true})
+    .setView([city.lat, city.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap contributors', maxZoom:19
+  }).addTo(map);
+  renderMapLayers();
+}
+
+function makeIcon(emoji, color, size=32){
+  return L.divIcon({
+    html:`<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center">
+      <span style="transform:rotate(45deg);font-size:${Math.round(size*0.55)}px;line-height:1">${emoji}</span></div>`,
+    className:'', iconAnchor:[size/2, size], iconSize:[size, size]
+  });
+}
+
+function renderMapLayers(){
+  const city = CITIES[state.dest];
+  if(!map) return;
+  map.setView([city.lat, city.lng], 13);
+  clearMapLayers();
+
+  const cats = getSelectedCats();
+  const filteredAttrs = city.attractions.filter(a => cats.length===0 || cats.includes(a.cat));
+  const filteredHotels = getFilteredHotels();
+  const bestHotel = filteredHotels[0];
+
+  // Hotels layer
+  layerHotels = L.layerGroup();
+  filteredHotels.forEach((h,i) => {
+    const isSelected = i===0;
+    const ico = L.divIcon({
+      html:`<div style="background:${isSelected?'#2563eb':'#64748b'};color:#fff;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">${h.emoji} ${h.name.split(' ').slice(0,2).join(' ')}</div>`,
+      className:'', iconAnchor:[0,16]
+    });
+    L.marker([h.lat, h.lng], {icon:ico})
+      .bindPopup(`<b>${h.emoji} ${h.name}</b><br>${'★'.repeat(h.stars)||'Airbnb'} | $${h.price}/לילה<br>מרחק ממרכז: ${h.dist} ק"מ<br>דירוג: ${h.rating}/10<br><span style="color:#16a34a;font-weight:700">$${h.price * state.nights} סה"כ</span>`)
+      .addTo(layerHotels);
+  });
+
+  // Attractions layer
+  layerAttrs = L.layerGroup();
+  const catColors = {
+    'תרבות':'#16a34a','היסטוריה':'#dc2626','טבע':'#0891b2',
+    'קניות':'#d97706','בילוי':'#7c3aed','מדע':'#0369a1',
+    'דת':'#9333ea','אדריכלות':'#ea580c'
+  };
+  const routeCoords = [];
+  filteredAttrs.slice(0, state.attrsPerDay * Math.min(state.days-1, 5)).forEach(a => {
+    const color = catColors[a.cat] || '#374151';
+    const ico = makeIcon(a.emoji, color, 34);
+    L.marker([a.lat, a.lng], {icon:ico})
+      .bindPopup(`<b>${a.emoji} ${a.name}</b><br>קטגוריה: ${a.cat} | ${a.sub}<br>זמן שהייה: ${a.dur} דק'<br>מרחק הליכה: ${a.walk} ק"מ<br>כניסה: ${a.cost===0?'<span style="color:#16a34a">חינם</span>':'$'+a.cost}`)
+      .addTo(layerAttrs);
+    routeCoords.push([a.lat, a.lng]);
+  });
+
+  // Route layer
+  layerRoute = L.layerGroup();
+  if(routeCoords.length > 1){
+    L.polyline(routeCoords, {color:'#ef4444', weight:2.5, opacity:0.7, dashArray:'8,5'}).addTo(layerRoute);
+  }
+
+  // Events layer
+  layerEvents = L.layerGroup();
+  city.events.forEach(e => {
+    const ico = makeIcon(e.emoji, '#7c3aed', 30);
+    const offset = (Math.random()-0.5)*0.01;
+    L.marker([city.lat+offset, city.lng+offset], {icon:ico})
+      .bindPopup(`<b>${e.emoji} ${e.name}</b><br>סוג: ${e.type}<br>מיקום: ${e.venue}`)
+      .addTo(layerEvents);
+  });
+
+  // Zones layer
+  layerZones = L.layerGroup();
+  const zoneColors = ['#3b82f6','#16a34a','#d97706','#7c3aed','#ef4444'];
+  city.zones.forEach((z,i) => {
+    const offset = (i-2)*0.02;
+    const poly = L.circle([city.lat+offset*0.8, city.lng+offset], {
+      radius:700, color:zoneColors[i%5], fillOpacity:0.08, weight:1.5, fillColor:zoneColors[i%5]
+    }).bindTooltip(`אזור ${i+1}: ${z}`, {permanent:false, direction:'center'});
+    poly.addTo(layerZones);
+  });
+
+  applyLayerVisibility();
+}
+
+function clearMapLayers(){
+  [layerHotels,layerAttrs,layerRoute,layerEvents,layerZones].forEach(l => { if(l) map.removeLayer(l); });
+}
+
+function applyLayerVisibility(){
+  if(!map) return;
+  const layerMap = {hotels:layerHotels, attrs:layerAttrs, route:layerRoute, events:layerEvents, zones:layerZones};
+  Object.keys(layerMap).forEach(k => {
+    if(!layerMap[k]) return;
+    if(layers[k]) map.addLayer(layerMap[k]);
+    else map.removeLayer(layerMap[k]);
+  });
+}
+
+function toggleLayer(name, btn){
+  layers[name] = !layers[name];
+  btn.classList.toggle('active', layers[name]);
+  applyLayerVisibility();
+}
+
+/* =========================================================
+   HOTELS
+   ========================================================= */
+function getFilteredHotels(){
+  const city = CITIES[state.dest];
+  const type = document.querySelector('input[name="hotelType"]:checked')?.value || 'all';
+  return city.hotels.filter(h => {
+    if(type !== 'all' && h.type !== type) return false;
+    if(h.price > state.budget * 1.3) return false;
+    if(h.stars > 0 && h.stars < state.minStars) return false;
+    if(h.dist > state.maxDist) return false;
+    return true;
+  }).sort((a,b) => {
+    const scoreA = a.rating - (a.price/state.budget)*0.5;
+    const scoreB = b.rating - (b.price/state.budget)*0.5;
+    return scoreB - scoreA;
+  });
+}
+
+function renderHotels(){
+  const hotels = getFilteredHotels();
+  const el = document.getElementById('hotels-content');
+  if(hotels.length === 0){
+    el.innerHTML = `<div class="empty"><span class="empty-icon">&#x1F3E8;</span><div class="empty-text">אין מלונות מתאימים לפרמטרים שנבחרו</div><br><small>נסה להגדיל את התקציב או לשנות את הסינון</small></div>`;
+    return;
+  }
+  const rooms = Math.ceil((state.adults + state.children) / 2);
+  let html = `<div class="card"><div class="card-h">&#x1F3E8; ${hotels.length} מלונות מתאימים &nbsp;<span class="badge b-blue">${rooms} חדרים נדרשים</span></div>`;
+  html += `<div style="font-size:12px;color:#64748b;margin-bottom:8px">ממוין לפי: ערך מיטבי (דירוג ÷ מחיר) | פילטר: עד $${state.budget}/לילה, ≥${state.minStars}★, ≤${state.maxDist}ק"מ</div></div>`;
+
+  hotels.forEach((h, i) => {
+    const totalNights = state.nights;
+    const totalPerRoom = h.price * totalNights;
+    const total = totalPerRoom * rooms;
+    const isBest = i === 0;
+    html += `
+    <div class="hotel-card ${isBest?'best-match':''}">
+      <div class="hotel-emoji">${h.emoji}</div>
+      <div class="hotel-info">
+        <div class="hotel-name">${isBest?'<span class="badge b-green">&#x2714; מומלץ</span> ':''} ${h.name}</div>
+        <div class="hotel-stars">${h.stars > 0 ? '★'.repeat(h.stars)+'☆'.repeat(5-h.stars) : 'Airbnb'}</div>
+        <div class="hotel-meta">
+          &#x1F4CD; ${h.dist} ק"מ מהמרכז &nbsp;|&nbsp; &#x1F687; ${h.metro} ק"מ למטרו<br>
+          &#x2B50; דירוג: <b>${h.rating}</b>/10 &nbsp;|&nbsp; &#x1F6CF; ${rooms} חדר${rooms>1?'ות':''}
+          ${h.type==='Airbnb'?'&nbsp;<span class="badge b-purple">Airbnb</span>':''}
+        </div>
+        <div style="margin-top:6px">
+          <span class="badge ${h.dist<1?'b-green':'b-blue'}">&#x1F4CD; ${h.dist<1?'מרכזי מאוד':h.dist<2?'מרכזי':'מעט מרוחק'}</span>
+          <span class="badge b-amber">&#x1F687; ${h.metro<0.2?'צמוד מטרו':h.metro<0.4?'קרוב מטרו':'מרוחק ממטרו'}</span>
+        </div>
+      </div>
+      <div class="hotel-price">
+        <div class="h-price-val">$${h.price}</div>
+        <div class="h-price-night">ללילה/חדר</div>
+        <div class="h-price-total" style="margin-top:8px">$${total.toLocaleString()}</div>
+        <div class="h-price-night">סה"כ ${totalNights} לילות</div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+/* =========================================================
+   FLIGHTS
+   ========================================================= */
+function renderFlights(){
+  const city = CITIES[state.dest];
+  const el = document.getElementById('flights-content');
+  const totalPax = state.adults + state.children;
+  const classMultiplier = {economy:1, business:2.6, first:4.5};
+  const mult = classMultiplier[state.flightClass] || 1;
+  const base = city.baseFlightPrice;
+
+  const airlines = [
+    {name:'El Al', emoji:'✈️', code:'LY', color:'#1d4ed8'},
+    {name:'British Airways', emoji:'🇬🇧', code:'BA', color:'#1e40af'},
+    {name:'EasyJet', emoji:'🟠', code:'EZY', color:'#ea580c'},
+    {name:'Ryanair', emoji:'🔵', code:'FR', color:'#1d4ed8'},
+    {name:'Lufthansa', emoji:'🇩🇪', code:'LH', color:'#facc15'},
+  ];
+
+  const flights = [
+    {airline:airlines[0], dep:'06:30', arr:'10:10', stops:'ישיר', price:Math.round(base*mult*0.95), stopNum:0},
+    {airline:airlines[1], dep:'09:15', arr:'13:50', stops:'ישיר', price:Math.round(base*mult*1.1), stopNum:0},
+    {airline:airlines[2], dep:'07:00', arr:'12:30', stops:'עצירה - עמאן', price:Math.round(base*mult*0.72), stopNum:1},
+    {airline:airlines[3], dep:'14:20', arr:'19:45', stops:'עצירה - אתונה', price:Math.round(base*mult*0.65), stopNum:1},
+    {airline:airlines[4], dep:'11:00', arr:'15:40', stops:'ישיר', price:Math.round(base*mult*1.05), stopNum:0},
+  ].filter(f => {
+    if(state.stops==='direct') return f.stopNum===0;
+    if(state.stops==='one') return f.stopNum===1;
+    return true;
+  });
+
+  const depDate = document.getElementById('depDate').value;
+  const retDate = document.getElementById('retDate').value;
+  const classLabel = {economy:'Economy',business:'Business Class',first:'First Class'};
+
+  let html = `<div class="card"><div class="card-h">&#x2708;&#xFE0F; טיסות יציאה | ${formatDate(depDate)} | ${classLabel[state.flightClass]}</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:4px">מנתב"ג (TLV) &#x2192; ${city.airports[0].split('-')[0].trim()} | ${totalPax} נוסעים</div></div>`;
+
+  flights.forEach((f,i) => {
+    const total = f.price * totalPax;
+    const selected = i === state.selectedFlight;
+    html += `<div class="flight-card ${selected?'selected':''}" onclick="selectFlight(${i})">
+      <div class="airline-logo" title="${f.airline.name}">${f.airline.emoji}</div>
+      <div>
+        <div style="font-weight:700;font-size:12px;color:#0f172a">${f.airline.name} ${f.airline.code}${Math.floor(Math.random()*900)+100}</div>
+        <div style="font-size:11px;color:#64748b">${f.stops}</div>
+      </div>
+      <div class="flight-times" style="direction:ltr">
+        <div class="ftime">${f.dep}</div>
+        <div class="fdur">
+          <div class="fdur-line"><div class="fdur-bar"></div><div class="fdur-dot"></div><div class="fdur-bar"></div></div>
+          ${city.flightDur}
+        </div>
+        <div class="ftime">${f.arr}</div>
+      </div>
+      <div class="flight-price-col">
+        <div class="f-price">$${f.price.toLocaleString()}</div>
+        <div class="f-price-pp">לנוסע</div>
+        <div class="f-price-total">$${total.toLocaleString()} סה"כ</div>
+      </div>
+    </div>`;
+  });
+
+  html += `<div class="card" style="margin-top:8px"><div class="card-h">&#x2708;&#xFE0F; טיסות חזרה | ${formatDate(retDate)}</div>`;
+  flights.slice(0,3).forEach((f,i) => {
+    const ret = f.price * 0.92;
+    html += `<div class="flight-card">
+      <div class="airline-logo">${f.airline.emoji}</div>
+      <div><div style="font-weight:700;font-size:12px">${f.airline.name}</div><div style="font-size:11px;color:#64748b">${f.stops}</div></div>
+      <div class="flight-times" style="direction:ltr">
+        <div class="ftime">17:30</div>
+        <div class="fdur"><div class="fdur-line"><div class="fdur-bar"></div><div class="fdur-dot"></div><div class="fdur-bar"></div></div>${city.flightDur}</div>
+        <div class="ftime">22:10</div>
+      </div>
+      <div class="flight-price-col">
+        <div class="f-price">$${Math.round(ret).toLocaleString()}</div>
+        <div class="f-price-pp">לנוסע</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+function selectFlight(i){ state.selectedFlight=i; renderFlights(); update(); }
+
+/* =========================================================
+   ITINERARY
+   ========================================================= */
+function renderItinerary(){
+  const city = CITIES[state.dest];
+  const cats = getSelectedCats();
+  let attrs = city.attractions.filter(a => cats.length===0 || cats.includes(a.cat));
+  const days = state.days - 1;
+  const apd = parseInt(document.getElementById('attrsPerDay')?.value || 4);
+  const el = document.getElementById('itinerary-content');
+
+  const meals = [
+    {time:'13:00', name:'ארוחת צהריים', desc:'הפסקה לאכילה במסעדה מקומית', emoji:'🍽️', type:'meal'},
+    {time:'17:00', name:'הפסקת קפה', desc:'ריענון וקפה מקומי', emoji:'☕', type:'meal'},
+  ];
+
+  let html = '';
+  const depDate = new Date(document.getElementById('depDate')?.value || '2025-06-15');
+
+  for(let d=0; d<Math.min(days, state.nights); d++){
+    const dayDate = new Date(depDate);
+    dayDate.setDate(depDate.getDate() + d);
+    const dateStr = dayDate.toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'long'});
+    const zone = city.zones[d % city.zones.length];
+
+    const dayAttrs = attrs.filter((a,i) => i % Math.min(days,5) === d % Math.min(days,5)).slice(0, apd);
+    if(dayAttrs.length === 0) continue;
+
+    html += `<div class="day-banner"><div>
+      <div class="day-banner-title">&#x1F4C5; יום ${d+1} - ${dateStr}</div>
+      <div class="day-banner-sub">&#x1F4CD; אזור: ${zone} | ${dayAttrs.length} אטרקציות</div>
+    </div><div style="font-size:12px;text-align:left">${apd} ביקורים</div></div>`;
+
+    html += '<div class="timeline">';
+    let time = 9*60; // 9:00 AM in minutes
+
+    // Hotel checkout / start
+    if(d===0){
+      html += makeTimelineItem(fmtTime(time), '&#x1F3E8;', 'יציאה מהמלון', `צ'ק-אין / יציאה מהמלון`, 'transit');
+      time += 30;
+    } else {
+      html += makeTimelineItem(fmtTime(time), '&#x1F506;', `תחילת יום ${d+1}`, 'ארוחת בוקר ויציאה', 'transit');
+      time += 45;
+    }
+
+    dayAttrs.forEach((a, i) => {
+      html += makeTimelineItem(fmtTime(time), a.emoji, a.name, `${a.sub} | שהייה: ${a.dur} דק' | מרחק: ${a.walk} ק"מ | ${a.cost===0?'חינם':'$'+a.cost}`, 'attr');
+      time += a.dur + 15; // attraction + travel
+      if(i === Math.floor(dayAttrs.length/2) - 1){
+        html += makeTimelineItem(fmtTime(time), '🍽️', 'ארוחת צהריים', 'מסעדה מקומית - 60 דקות', 'meal');
+        time += 75;
+      }
+    });
+
+    html += makeTimelineItem(fmtTime(time), '☕', 'הפסקת ריענון', 'קפה / שתייה / מנוחה', 'meal');
+    time += 30;
+    html += makeTimelineItem(fmtTime(time), '🌆', 'פעילות ערב', 'שוק / אטרקציה עלייה / מוסיקה מקומית', 'attr');
+    time += 90;
+    html += makeTimelineItem(fmtTime(time), '🍴', 'ארוחת ערב', 'מסעדה מומלצת - ניסוי המטבח המקומי', 'meal');
+
+    html += '</div><br>';
+  }
+
+  el.innerHTML = html;
+}
+
+function makeTimelineItem(time, emoji, title, desc, type){
+  const dotClass = type==='meal'?'meal':type==='transit'?'transit':'';
+  return `<div class="tl-item">
+    <div class="tl-left"><div class="tl-time">${time}</div><div class="tl-dot ${dotClass}"></div><div class="tl-line"></div></div>
+    <div class="tl-content">
+      <div class="tl-title">${emoji} ${title}</div>
+      <div class="tl-desc">${desc}</div>
+    </div>
+  </div>`;
+}
+
+function fmtTime(mins){ return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`; }
+
+/* =========================================================
+   BUDGET
+   ========================================================= */
+let budgetChart = null;
+function renderBudget(){
+  const city = CITIES[state.dest];
+  const cats = getSelectedCats();
+  const attrs = city.attractions.filter(a => cats.length===0 || cats.includes(a.cat));
+  const filteredHotels = getFilteredHotels();
+  const hotel = filteredHotels[0];
+  const rooms = Math.ceil((state.adults + state.children) / 2);
+  const totalPax = state.adults + state.children;
+  const flightBase = city.baseFlightPrice;
+  const classMultiplier = {economy:1, business:2.6, first:4.5}[state.flightClass] || 1;
+
+  const costs = {
+    'טיסות': Math.round(flightBase * classMultiplier * 2 * totalPax),
+    'לינה': hotel ? hotel.price * state.nights * rooms : state.budget * state.nights * rooms,
+    'אטרקציות': Math.round(attrs.slice(0, state.attrsPerDay * Math.min(state.days-1,5)).reduce((s,a)=>s+a.cost,0) * totalPax * 0.8),
+    'אוכל': Math.round(50 * totalPax * state.days),
+    'תחבורה מקומית': Math.round(15 * totalPax * state.days),
+    'שונות': Math.round(25 * totalPax * state.days),
+  };
+
+  const total = Object.values(costs).reduce((s,v)=>s+v,0);
+  const colors = ['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#64748b'];
+  const el = document.getElementById('budget-content');
+
+  let html = `<div class="card">
+    <div class="card-h">&#x1F4CA; פירוט עלויות מסה"כ</div>
+    <div class="budget-chart-wrap"><canvas id="budgetChart"></canvas></div>`;
+
+  Object.entries(costs).forEach(([k,v], i) => {
+    const pct = Math.round(v/total*100);
+    html += `<div class="budget-row">
+      <div class="budget-cat"><div class="budget-dot" style="background:${colors[i]}"></div>${k}</div>
+      <div>
+        <div class="budget-amt">$${v.toLocaleString()}</div>
+        <div style="font-size:10px;color:#94a3b8;text-align:left">${pct}%</div>
+      </div>
+    </div>`;
+  });
+
+  html += `<div class="budget-total-row">
+    <div class="budget-total-label">סה"כ משוער</div>
+    <div class="budget-total-val">$${total.toLocaleString()}</div>
+  </div>
+  <div class="budget-pp">$${Math.round(total/totalPax).toLocaleString()} לנוסע | ${total * city.rate > 0 ? Math.round(total * city.rate).toLocaleString() : '---'} ₪ בשקלים</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">&#x1F4B3; המרת מטבע</div>
+    <div style="font-size:13px;color:#64748b;line-height:2">
+      1 ${city.currency} = ₪${city.rate}<br>
+      תקציב יומי מומלץ לאדם: <b>$${Math.round((costs['אוכל']+costs['תחבורה מקומית'])/totalPax/state.days)}</b><br>
+      עלות ממוצעת לאטרקציה: <b>$${attrs.length>0?Math.round(attrs.reduce((s,a)=>s+a.cost,0)/attrs.length):0}</b>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+
+  // Chart
+  setTimeout(() => {
+    const ctx = document.getElementById('budgetChart');
+    if(!ctx) return;
+    if(budgetChart) budgetChart.destroy();
+    budgetChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(costs),
+        datasets:[{data: Object.values(costs), backgroundColor: colors, borderWidth:2, borderColor:'#fff'}]
+      },
+      options: {
+        plugins: {legend:{display:false}, tooltip:{callbacks:{label:ctx=>`$${ctx.raw.toLocaleString()}`}}},
+        cutout:'65%',
+      }
+    });
+  }, 50);
+}
+
+/* =========================================================
+   AI ANALYSIS
+   ========================================================= */
+function renderAI(){
+  const city = CITIES[state.dest];
+  const cats = getSelectedCats();
+  const totalPax = state.adults + state.children;
+  const hasChildren = state.children > 0;
+  const isSenior = state.adultAge === 'senior';
+  const el = document.getElementById('ai-content');
+
+  const tips = [];
+  if(hasChildren) tips.push('התאמת מסלול לילדים: אטרקציות אינטראקטיביות, הפסקות תכופות, מסעדות עם תפריט ילדים');
+  if(isSenior) tips.push('מסלול נגיש: עדיפות לאתרים עם נגישות, הכרת מרחקי הליכה, המלצת תחבורה ציבורית נוחה');
+  if(cats.includes('תרבות')) tips.push(`מוזיאונים מומלצים ב${state.dest}: בדוק ימי כניסה חינם, הזמן כרטיסים מראש לאטרקציות הפופולריות`);
+  if(cats.includes('קניות')) tips.push(`אזורי קניות מרכזיים: ${city.zones[0]} ו-${city.zones[1]} - מחירים טובים יותר מחוץ לאזורי התיירות`);
+  if(state.days >= 7) tips.push(`טיפ לטיול ארוך: שלב יום מנוחה ב-${city.zones[Math.floor(city.zones.length/2)]} ללא תכנית מחייבת`);
+  tips.push(`עונת ${getSeasonHe()} ב${state.dest}: ${getSeasonTip(state.dest)}`);
+
+  const attrs = city.attractions.filter(a => cats.length===0 || cats.includes(a.cat));
+  const freeAttrs = attrs.filter(a => a.cost === 0);
+  const paidAttrs = attrs.filter(a => a.cost > 0);
+
+  let html = `
+  <div class="ai-box">
+    <div class="ai-header">&#x1F916; ניתוח AI חכם - ${state.dest}</div>
+    <div class="ai-body">
+      <b>פרופיל המטיילים:</b> ${totalPax} אנשים | ${state.days} ימים | ${state.adultAge==='young'?'צעירים':state.adultAge==='mid'?'משפחה':' בוגרים'}${hasChildren?` + ${state.children} ילד${state.children>1?'ים':''}`:''}
+      <br><br>
+      <b>&#x2705; המלצות GIS מותאמות אישית:</b>
+      <ul>${tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+    </div>
+  </div>
+
+  <div class="ai-box">
+    <div class="ai-header">&#x1F4CD; ניתוח מרחקים ומסלולים (GIS)</div>
+    <div class="ai-body">
+      <b>אטרקציות שנבחרו:</b> ${attrs.length} סה"כ<br>
+      &#x1F7E2; חינם (${freeAttrs.length}): ${freeAttrs.map(a=>a.emoji+' '+a.name).join(', ') || 'אין'}<br>
+      &#x1F7E1; בתשלום (${paidAttrs.length}): ${paidAttrs.map(a=>`${a.emoji} ${a.name} ($${a.cost})`).join(', ') || 'אין'}<br><br>
+      <b>מסלול הליכה מיטבי (GIS Routing):</b><br>
+      מרחק כולל משוער: ~${Math.round(attrs.slice(0,8).reduce((s,a)=>s+a.walk,0)*1.4*10)/10} ק"מ<br>
+      זמן הליכה כולל: ~${Math.round(attrs.slice(0,8).reduce((s,a)=>s+a.walk,0)*15)} דקות
+    </div>
+  </div>
+
+  <div class="ai-box">
+    <div class="ai-header">&#x1F3AA; אירועים בתאריכי הטיול</div>
+    <div class="ai-body">`;
+
+  city.events.forEach(e => {
+    html += `<div class="event-card"><div class="event-name">${e.emoji} ${e.name}</div><div class="event-meta">${e.type} | ${e.venue}</div></div>`;
+  });
+
+  html += `</div></div>
+
+  <div class="ai-box">
+    <div class="ai-header">&#x1F37D;&#xFE0F; נקודות ריענון מומלצות</div>
+    <div class="ai-body">
+      <b>מסנני מדיה חברתית - הכי פופולרי ב${state.dest}:</b>
+      <ul>
+        <li>&#x2615; קפה: Top rated cafe ב${city.zones[0]} (4.8★, TripAdvisor)</li>
+        <li>&#x1F355; אוכל: ${state.dest==='לונדון'?'Fish & Chips':state.dest==='פריז'?'קרואסון ועוגיות':state.dest==='ליסבון'?'פסטיס דה בלם - המקורי':state.dest==='פראג'?'Svíčková - בשר מסורתי':'Tapas מסורתיות'} - חובה לנסות</li>
+        <li>&#x1F37B; בר / אפטרנון: מקום מקומי ב${city.zones[1]}</li>
+      </ul>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function getSeasonHe(){
+  const m = new Date(document.getElementById('depDate')?.value || '').getMonth();
+  if(m>=2&&m<=4) return 'אביב';
+  if(m>=5&&m<=7) return 'קיץ';
+  if(m>=8&&m<=10) return 'סתיו';
+  return 'חורף';
+}
+function getSeasonTip(dest){
+  const s = getSeasonHe();
+  const tips = {
+    'קיץ':'עמוס במטיילים, הזמן מלון מראש! מחירים גבוהים ב-20%',
+    'אביב':'עונה מושלמת, מזג אוויר נעים, פחות עומס',
+    'סתיו':'אחרי שיא העונה, מחירים יורדים, מזג אוויר נוח',
+    'חורף':'מחירים נמוכים, פחות תיירים, לבוש חמים נדרש',
+  };
+  return tips[s] || 'תנאים נוחים';
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function getSelectedCats(){
+  return [...document.querySelectorAll('#cat-pills input:checked')].map(i=>i.value);
+}
+
+function formatDate(d){
+  if(!d) return '';
+  return new Date(d).toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'});
+}
+
+function calcDays(){
+  const dep = document.getElementById('depDate')?.value;
+  const ret = document.getElementById('retDate')?.value;
+  if(!dep||!ret) return {days:7,nights:6};
+  const d = Math.max(1, Math.round((new Date(ret)-new Date(dep))/(86400000)));
+  return {days:d+1, nights:d};
+}
+
+function syncSlider(el, valId, prefix, suffix){
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct+'%');
+  document.getElementById(valId).textContent = prefix + el.value + suffix;
+}
+
+function syncSliderDist(el){
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct+'%');
+  document.getElementById('distVal').textContent = el.value + ' ק"מ';
+  state.maxDist = parseFloat(el.value);
+}
+
+function setStars(val){
+  state.minStars = val;
+  document.querySelectorAll('.star-btn').forEach((s,i) => {
+    s.classList.toggle('on', i < val);
+    s.textContent = i < val ? '★' : '☆';
+  });
+  update();
+}
+
+function toggleSec(header){
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function toggleCruise(cb){
+  document.getElementById('cruise-fields').style.display = cb.checked ? 'block' : 'none';
+  update();
+}
+
+function syncDestCity(){
+  const country = document.getElementById('destCountry').value;
+  const cities = COUNTRY_CITY[country] || ['לונדון'];
+  const sel = document.getElementById('destCity');
+  sel.innerHTML = cities.map(c=>`<option>${c}</option>`).join('');
+  const airportSel = document.getElementById('arrAirport');
+  const city = CITIES[cities[0]];
+  if(city && airportSel) airportSel.innerHTML = city.airports.map(a=>`<option>${a}</option>`).join('');
+  update();
+}
+
+function showTab(name, tab){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  tab.classList.add('active');
+  if(name==='map') setTimeout(()=>map&&map.invalidateSize(),50);
+}
+
+function showNotif(msg){
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'), 2000);
+}
+
+/* =========================================================
+   MAIN UPDATE
+   ========================================================= */
+function update(){
+  const city = document.getElementById('destCity')?.value || 'לונדון';
+  state.dest = city;
+  const {days, nights} = calcDays();
+  state.days = days; state.nights = nights;
+  state.adults = parseInt(document.getElementById('adults')?.value||2);
+  state.children = parseInt(document.getElementById('children')?.value||0);
+  state.adultAge = document.getElementById('adultAge')?.value||'mid';
+  state.budget = parseInt(document.getElementById('budget')?.value||120);
+  state.maxDist = parseFloat(document.getElementById('maxDist')?.value||3);
+  state.cats = getSelectedCats();
+  state.attrsPerDay = parseInt(document.getElementById('attrsPerDay')?.value||4);
+
+  // Show/hide children age
+  const childrenSec = document.getElementById('children-ages');
+  if(childrenSec) childrenSec.style.display = state.children > 0 ? 'block' : 'none';
+
+  // Pills toggle
+  document.querySelectorAll('.pill').forEach(p => {
+    const inp = p.querySelector('input');
+    if(!inp) return;
+    if(inp.type==='radio') p.classList.toggle('active', inp.checked);
+    if(inp.type==='checkbox') p.classList.toggle('active', inp.checked);
+  });
+
+  const totalPax = state.adults + state.children;
+  const cityData = CITIES[state.dest];
+  const filteredHotels = getFilteredHotels();
+  const filteredAttrs = cityData.attractions.filter(a => state.cats.length===0 || state.cats.includes(a.cat));
+  const classMultiplier = {economy:1, business:2.6, first:4.5}[state.flightClass||'economy'] || 1;
+  const flightCost = cityData.baseFlightPrice * classMultiplier * 2 * totalPax;
+  const hotelCost = (filteredHotels[0]?.price || state.budget) * state.nights * Math.ceil(totalPax/2);
+  const attrCost = filteredAttrs.slice(0, state.attrsPerDay * Math.min(state.days-1,5)).reduce((s,a)=>s+a.cost,0) * totalPax;
+  const foodCost = 50 * totalPax * state.days;
+  const transPort = 15 * totalPax * state.days;
+  const total = Math.round(flightCost + hotelCost + attrCost + foodCost + transPort + 25*totalPax*state.days);
+
+  document.getElementById('s-dest').textContent = state.dest;
+  document.getElementById('s-days').textContent = state.days;
+  document.getElementById('s-nights').textContent = state.nights;
+  document.getElementById('s-travelers').textContent = totalPax;
+  document.getElementById('s-attrs').textContent = filteredAttrs.length;
+  document.getElementById('s-cost').textContent = '$'+total.toLocaleString();
+  document.getElementById('s-currency').textContent = cityData.currency;
+
+  renderHotels();
+  renderFlights();
+  renderItinerary();
+  renderBudget();
+  renderAI();
+  renderMapLayers();
+}
+
+function runSimulation(){
+  update();
+  showNotif('&#x2705; הסימולציה עודכנה בהצלחה!');
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  // Init slider displays
+  ['budget'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) { el.style.setProperty('--pct', '19%'); }
+  });
+  initMap();
+  update();
+});
+</script>
+</body>
+</html>
