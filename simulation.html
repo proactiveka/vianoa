@@ -162,11 +162,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .map-overlay h4{font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:8px}
 .legend-item{display:flex;align-items:center;gap:7px;margin-bottom:5px}
 .leg-dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(0,0,0,.2);flex-shrink:0}
+.leg-line{width:18px;height:3px;border-radius:2px;flex-shrink:0}
 
 .map-ctrl{position:absolute;top:16px;right:16px;z-index:800;display:flex;flex-direction:column;gap:8px}
 .map-ctrl-btn{background:rgba(255,255,255,.95);border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.1);white-space:nowrap;transition:all .15s;color:#1e3a8a}
 .map-ctrl-btn:hover{background:#1d4ed8;color:#fff}
 .map-ctrl-btn.active{background:#1d4ed8;color:#fff}
+
+/* DAY FILTER BAR */
+.day-filter-bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:800;display:flex;gap:5px;background:rgba(255,255,255,.93);backdrop-filter:blur(8px);border-radius:24px;padding:5px 8px;box-shadow:0 3px 14px rgba(0,0,0,.18);flex-wrap:nowrap;overflow-x:auto;max-width:calc(100% - 160px)}
+.day-btn{padding:5px 13px;border:1.5px solid transparent;border-radius:16px;font-size:12px;font-weight:700;cursor:pointer;color:#64748b;background:transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.day-btn:hover{background:#f1f5f9;color:#1e3a8a}
+.day-btn.active{color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+
+@media(max-width:768px){
+  .day-filter-bar{top:8px;max-width:calc(100% - 120px);padding:4px 6px;gap:4px}
+  .day-btn{padding:4px 9px;font-size:11px}
+  .map-ctrl{top:auto;bottom:110px;right:8px}
+  .map-overlay{bottom:8px;right:8px;padding:7px 10px;min-width:110px}
+}
 
 /* ATTRACTION CARD */
 .attr-card{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid #f1f5f9;border-radius:8px;margin-bottom:8px;background:#fff;cursor:pointer;transition:all .15s}
@@ -603,6 +617,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <!-- MAP -->
       <div class="pane active" id="pane-map">
         <div id="map"></div>
+        <!-- DAY FILTER BAR -->
+        <div class="day-filter-bar" id="dayFilterBar">
+          <button class="day-btn active" style="background:#1d4ed8;border-color:#1d4ed8" onclick="setMapDay('all',this)">&#x1F5FA; כל הימים</button>
+        </div>
+
         <div class="map-ctrl">
           <button class="map-ctrl-btn active" id="btn-layer-hotels" onclick="toggleLayer('hotels',this)">&#x1F3E8; מלונות</button>
           <button class="map-ctrl-btn active" id="btn-layer-attrs" onclick="toggleLayer('attrs',this)">&#x1F4CD; אטרקציות</button>
@@ -610,13 +629,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <button class="map-ctrl-btn" id="btn-layer-events" onclick="toggleLayer('events',this)">&#x1F3AA; אירועים</button>
           <button class="map-ctrl-btn" id="btn-layer-zones" onclick="toggleLayer('zones',this)">&#x1F4F9; אזורים</button>
         </div>
-        <div class="map-overlay">
+        <div class="map-overlay" id="mapLegend">
           <h4>&#x1F4CC; מקרא</h4>
-          <div class="legend-item"><div class="leg-dot" style="background:#2563eb"></div> מלון נבחר</div>
-          <div class="legend-item"><div class="leg-dot" style="background:#16a34a"></div> אטרקציה</div>
-          <div class="legend-item"><div class="leg-dot" style="background:#d97706"></div> אוכל / ריענון</div>
+          <div class="legend-item"><div class="leg-dot" style="background:#2563eb"></div> מלון</div>
           <div class="legend-item"><div class="leg-dot" style="background:#7c3aed"></div> אירוע</div>
-          <div class="legend-item"><div class="leg-dot" style="background:#ef4444;border-radius:2px"></div> מסלול הליכה</div>
+          <div id="legend-days"></div>
         </div>
       </div>
 
@@ -821,6 +838,7 @@ let state = {
   routeOpt:'proximity', attrsPerDay:4,
   transport:'public', flightClass:'economy', stops:'any',
   cruise:false, selectedHotel:0, selectedFlight:0,
+  mapDay:'all',
 };
 
 /* =========================================================
@@ -839,11 +857,23 @@ function initMap(){
   renderMapLayers();
 }
 
+const DAY_COLORS = ['#ef4444','#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#ec4899','#84cc16'];
+
+function makeDayIcon(emoji, color, dayNum, order, size=36){
+  return L.divIcon({
+    html:`<div style="position:relative;width:${size}px;height:${size+10}px">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.48)}px">${emoji}</div>
+      <div style="position:absolute;top:-7px;right:-7px;background:${color};color:#fff;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25)">י${dayNum}</div>
+      <div style="position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);background:${color};color:#fff;border-radius:6px;padding:1px 5px;font-size:9px;font-weight:800;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.2)">${order}</div>
+    </div>`,
+    className:'', iconAnchor:[size/2, size], iconSize:[size, size+10]
+  });
+}
+
 function makeIcon(emoji, color, size=32){
   return L.divIcon({
-    html:`<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center">
-      <span style="transform:rotate(45deg);font-size:${Math.round(size*0.55)}px;line-height:1">${emoji}</span></div>`,
-    className:'', iconAnchor:[size/2, size], iconSize:[size, size]
+    html:`<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.55)}px">${emoji}</div>`,
+    className:'', iconAnchor:[size/2, size/2], iconSize:[size, size]
   });
 }
 
@@ -854,16 +884,18 @@ function renderMapLayers(){
   clearMapLayers();
 
   const cats = getSelectedCats();
-  const filteredAttrs = city.attractions.filter(a => cats.length===0 || cats.includes(a.cat));
+  const allAttrs = city.attractions.filter(a => cats.length===0 || cats.includes(a.cat));
   const filteredHotels = getFilteredHotels();
-  const bestHotel = filteredHotels[0];
+
+  // Get unique days sorted
+  const allDays = [...new Set(allAttrs.map(a => a.day))].sort((a,b)=>a-b);
 
   // Hotels layer
   layerHotels = L.layerGroup();
   filteredHotels.forEach((h,i) => {
     const isSelected = i===0;
     const ico = L.divIcon({
-      html:`<div style="background:${isSelected?'#2563eb':'#64748b'};color:#fff;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">${h.emoji} ${h.name.split(' ').slice(0,2).join(' ')}</div>`,
+      html:`<div style="background:${isSelected?'#2563eb':'#64748b'};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">${h.emoji} ${h.name.split(' ').slice(0,2).join(' ')}</div>`,
       className:'', iconAnchor:[0,16]
     });
     L.marker([h.lat, h.lng], {icon:ico})
@@ -871,35 +903,58 @@ function renderMapLayers(){
       .addTo(layerHotels);
   });
 
-  // Attractions layer
+  // Attractions + Routes — grouped by day
   layerAttrs = L.layerGroup();
-  const catColors = {
-    'תרבות':'#16a34a','היסטוריה':'#dc2626','טבע':'#0891b2',
-    'קניות':'#d97706','בילוי':'#7c3aed','מדע':'#0369a1',
-    'דת':'#9333ea','אדריכלות':'#ea580c'
-  };
-  const routeCoords = [];
-  filteredAttrs.slice(0, state.attrsPerDay * Math.min(state.days-1, 5)).forEach(a => {
-    const color = catColors[a.cat] || '#374151';
-    const ico = makeIcon(a.emoji, color, 34);
-    L.marker([a.lat, a.lng], {icon:ico})
-      .bindPopup(`<b>${a.emoji} ${a.name}</b><br>קטגוריה: ${a.cat} | ${a.sub}<br>זמן שהייה: ${a.dur} דק'<br>מרחק הליכה: ${a.walk} ק"מ<br>כניסה: ${a.cost===0?'<span style="color:#16a34a">חינם</span>':'$'+a.cost}`)
-      .addTo(layerAttrs);
-    routeCoords.push([a.lat, a.lng]);
-  });
-
-  // Route layer
   layerRoute = L.layerGroup();
-  if(routeCoords.length > 1){
-    L.polyline(routeCoords, {color:'#ef4444', weight:2.5, opacity:0.7, dashArray:'8,5'}).addTo(layerRoute);
-  }
+
+  allDays.forEach(dayNum => {
+    // Skip days beyond trip length
+    if(dayNum > Math.max(state.days - 1, 1)) return;
+    // Skip if day filter active
+    if(state.mapDay !== 'all' && state.mapDay !== dayNum) return;
+
+    const dayColor = DAY_COLORS[(dayNum - 1) % DAY_COLORS.length];
+    const dayAttrs = allAttrs.filter(a => a.day === dayNum).slice(0, state.attrsPerDay);
+    const routeCoords = [];
+
+    dayAttrs.forEach((a, orderIdx) => {
+      const ico = makeDayIcon(a.emoji, dayColor, dayNum, orderIdx + 1);
+      L.marker([a.lat, a.lng], {icon: ico})
+        .bindPopup(
+          `<div style="min-width:180px">
+            <div style="background:${dayColor};color:#fff;border-radius:6px;padding:4px 10px;font-weight:700;margin-bottom:6px">
+              יום ${dayNum} — עצירה ${orderIdx+1}
+            </div>
+            <b>${a.emoji} ${a.name}</b><br>
+            ${a.cat} | ${a.sub}<br>
+            ⏱ שהייה: ${a.dur} דק' &nbsp;|&nbsp; 🚶 ${a.walk} ק"מ<br>
+            כניסה: ${a.cost===0?'<span style="color:#16a34a;font-weight:700">חינם</span>':'<b>$'+a.cost+'</b>'}
+          </div>`
+        )
+        .addTo(layerAttrs);
+      routeCoords.push([a.lat, a.lng]);
+    });
+
+    // Draw route line for this day
+    if(routeCoords.length > 1){
+      L.polyline(routeCoords, {
+        color: dayColor, weight: 3.5, opacity: 0.8,
+        dashArray: '10,6',
+      }).addTo(layerRoute);
+      // Start marker (hotel icon small)
+      if(filteredHotels[0]){
+        const startCoords = [[filteredHotels[0].lat, filteredHotels[0].lng], routeCoords[0]];
+        L.polyline(startCoords, {color:dayColor, weight:2, opacity:0.4, dashArray:'4,8'}).addTo(layerRoute);
+      }
+    }
+  });
 
   // Events layer
   layerEvents = L.layerGroup();
-  city.events.forEach(e => {
+  city.events.forEach((e, i) => {
     const ico = makeIcon(e.emoji, '#7c3aed', 30);
-    const offset = (Math.random()-0.5)*0.01;
-    L.marker([city.lat+offset, city.lng+offset], {icon:ico})
+    const offset = (i - 1) * 0.004;
+    L.marker([city.lat + offset, city.lng + offset * 0.7], {icon: ico})
       .bindPopup(`<b>${e.emoji} ${e.name}</b><br>סוג: ${e.type}<br>מיקום: ${e.venue}`)
       .addTo(layerEvents);
   });
@@ -907,15 +962,52 @@ function renderMapLayers(){
   // Zones layer
   layerZones = L.layerGroup();
   const zoneColors = ['#3b82f6','#16a34a','#d97706','#7c3aed','#ef4444'];
-  city.zones.forEach((z,i) => {
-    const offset = (i-2)*0.02;
-    const poly = L.circle([city.lat+offset*0.8, city.lng+offset], {
-      radius:700, color:zoneColors[i%5], fillOpacity:0.08, weight:1.5, fillColor:zoneColors[i%5]
-    }).bindTooltip(`אזור ${i+1}: ${z}`, {permanent:false, direction:'center'});
-    poly.addTo(layerZones);
+  city.zones.forEach((z, i) => {
+    const offset = (i - 2) * 0.02;
+    L.circle([city.lat + offset * 0.8, city.lng + offset], {
+      radius: 700, color: zoneColors[i%5], fillOpacity: 0.07,
+      weight: 1.5, fillColor: zoneColors[i%5]
+    }).bindTooltip(`אזור ${i+1}: ${z}`, {permanent: false, direction: 'center'}).addTo(layerZones);
   });
 
+  updateDayFilterBar(allDays);
+  updateMapLegend(allDays);
   applyLayerVisibility();
+}
+
+function updateDayFilterBar(days){
+  const bar = document.getElementById('dayFilterBar');
+  if(!bar) return;
+  const activeAll = state.mapDay === 'all';
+  let html = `<button class="day-btn ${activeAll?'active':''}" style="${activeAll?'background:#1e3a8a;border-color:#1e3a8a':''}" onclick="setMapDay('all',this)">&#x1F5FA; כל הימים</button>`;
+  days.forEach(d => {
+    const c = DAY_COLORS[(d-1) % DAY_COLORS.length];
+    const isActive = state.mapDay === d;
+    html += `<button class="day-btn ${isActive?'active':''}" style="border-color:${c};${isActive?'background:'+c+';color:#fff':''};color:${isActive?'#fff':c}" onclick="setMapDay(${d},this)">יום ${d}</button>`;
+  });
+  bar.innerHTML = html;
+}
+
+function updateMapLegend(days){
+  const el = document.getElementById('legend-days');
+  if(!el) return;
+  el.innerHTML = days.map(d => {
+    const c = DAY_COLORS[(d-1) % DAY_COLORS.length];
+    const city = CITIES[state.dest];
+    const cats = getSelectedCats();
+    const attrs = city.attractions.filter(a => (cats.length===0||cats.includes(a.cat)) && a.day===d);
+    return `<div class="legend-item">
+      <div class="leg-line" style="background:${c};width:18px;height:3px;border-radius:2px;flex-shrink:0"></div>
+      <span style="color:${c};font-weight:700">יום ${d}</span>
+      <span style="color:#64748b;font-size:10px">(${attrs.length})</span>
+    </div>`;
+  }).join('');
+}
+
+function setMapDay(day, btn){
+  state.mapDay = day === 'all' ? 'all' : parseInt(day);
+  renderMapLayers();
+  if(map) setTimeout(()=>map.invalidateSize(), 50);
 }
 
 function clearMapLayers(){
@@ -1429,6 +1521,7 @@ function showNotif(msg){
    ========================================================= */
 function update(){
   const city = document.getElementById('destCity')?.value || 'לונדון';
+  if(city !== state.dest) state.mapDay = 'all';
   state.dest = city;
   const {days, nights} = calcDays();
   state.days = days; state.nights = nights;
