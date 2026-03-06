@@ -199,6 +199,99 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 /* NOTIFICATION */
 .notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f2554;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
 .notif.show{opacity:1}
+
+/* MOBILE FILTER BUTTON */
+.mob-filter-btn{display:none;align-items:center;gap:6px;background:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:#1e3a8a;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.mob-filter-btn:active{transform:scale(.97)}
+
+/* SIDEBAR BACKDROP */
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:490;backdrop-filter:blur(2px)}
+.sidebar-backdrop.open{display:block}
+
+/* SIDEBAR CLOSE BTN (mobile) */
+.sidebar-close{display:none;position:sticky;top:0;z-index:10;background:#1e3a8a;color:#fff;border:none;width:100%;padding:12px 16px;font-size:14px;font-weight:700;cursor:pointer;text-align:right}
+
+@media (max-width: 768px) {
+  /* HEADER */
+  .header{height:48px;padding:0 12px}
+  .logo{font-size:15px;gap:8px}
+  .logo-icon{width:30px;height:30px;font-size:16px}
+  .header-badge{display:none}
+  .mob-filter-btn{display:flex}
+
+  /* STATS BAR — scroll horizontally, hide labels on tiny */
+  .stats-bar{padding:5px 8px;gap:0;-webkit-overflow-scrolling:touch}
+  .stat{padding:0 10px;gap:4px}
+  .stat-label{font-size:10px}
+  .stat-val{font-size:13px}
+
+  /* LAYOUT — stack vertically */
+  .app{flex-direction:column;height:auto;min-height:0;overflow:visible}
+
+  /* SIDEBAR — full-screen drawer from right */
+  .sidebar{
+    position:fixed;top:0;right:0;bottom:0;
+    width:min(320px, 92vw);
+    z-index:500;
+    transform:translateX(110%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    overflow-y:auto;
+    box-shadow:-4px 0 24px rgba(0,0,0,.25);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-close{display:block}
+
+  /* MAIN — full width */
+  .main{width:100%;flex:1;min-height:0;height:calc(100vh - 90px)}
+
+  /* TABS — smaller, scrollable */
+  .tab{padding:9px 11px;font-size:12px;gap:4px}
+
+  /* MAP — fixed height on mobile */
+  #pane-map{height:calc(100vh - 140px);min-height:320px}
+  #map{height:100%;min-height:320px}
+  .map-ctrl{top:8px;right:8px;gap:5px}
+  .map-ctrl-btn{padding:5px 9px;font-size:11px}
+  .map-overlay{bottom:8px;right:8px;padding:8px 10px;min-width:120px;font-size:11px}
+
+  /* PADDED PANES */
+  .pane.padded{padding:12px}
+
+  /* HOTEL CARD — wrap price to bottom */
+  .hotel-card{flex-wrap:wrap}
+  .hotel-price{width:100%;display:flex;align-items:center;gap:12px;padding-top:8px;border-top:1px solid #f1f5f9;margin-top:6px}
+  .h-price-val{font-size:22px}
+  .h-price-night{font-size:11px}
+  .h-price-total{font-size:13px;margin-top:0}
+
+  /* FLIGHT CARD — stack on mobile */
+  .flight-card{flex-wrap:wrap;gap:8px;padding:10px}
+  .flight-times{width:100%;order:3}
+  .flight-price-col{margin-right:auto}
+  .ftime{font-size:17px}
+  .f-price{font-size:19px}
+
+  /* TIMELINE */
+  .tl-left{width:48px}
+  .tl-time{font-size:10px}
+
+  /* BUDGET CHART */
+  .budget-chart-wrap{width:160px;height:160px}
+
+  /* CARDS */
+  .card{padding:12px;border-radius:8px}
+
+  /* ROW2 on very small screens */
+  @media (max-width: 400px){
+    .row2{grid-template-columns:1fr}
+  }
+}
+
+@media (max-width: 400px){
+  .row2{grid-template-columns:1fr}
+  .tab{padding:8px 8px;font-size:11px}
+  .stat{padding:0 7px}
+}
 </style>
 </head>
 <body>
@@ -210,6 +303,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <span>SmartGIS Travel Planner</span>
   </div>
   <div class="header-badge">&#x1F9EA; מצב סימולציה</div>
+  <button class="mob-filter-btn" onclick="toggleSidebar(true)">&#x2699;&#xFE0F; פרמטרים</button>
 </div>
 
 <!-- STATS BAR -->
@@ -223,11 +317,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <div class="stat"><span class="stat-label">מטבע מקומי</span><span class="stat-val" id="s-currency">GBP</span></div>
 </div>
 
+<!-- SIDEBAR BACKDROP -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
 <!-- APP -->
 <div class="app">
 
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="toggleSidebar(false)">&#x2715; סגור פרמטרים</button>
 
     <!-- DESTINATION -->
     <div class="sec">
@@ -1310,6 +1408,15 @@ function showTab(name, tab){
   if(name==='map') setTimeout(()=>map&&map.invalidateSize(),50);
 }
 
+function toggleSidebar(open){
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  if(open === undefined) open = !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  bd.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+
 function showNotif(msg){
   const n = document.getElementById('notif');
   n.textContent = msg;
@@ -1375,6 +1482,7 @@ function update(){
 
 function runSimulation(){
   update();
+  toggleSidebar(false);
   showNotif('&#x2705; הסימולציה עודכנה בהצלחה!');
 }
 
