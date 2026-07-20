@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ViaNova Travel OS — Dashboard ניתוח V5 כולל ניתוח מתחרים</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0f172a;color:#e2e8f0;font-size:14px;direction:rtl}
+:root{--blue:#3b82f6;--cyan:#06b6d4;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--purple:#a855f7;--pink:#ec4899;--slate:#64748b;--card:#1e293b;--border:#334155}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f2554 100%);padding:24px 32px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,#38bdf8,#6366f1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(99,102,241,.4)}
+.logo-text h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#f8fafc}
+.logo-text p{font-size:12px;color:#94a3b8;margin-top:2px}
+.header-badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-v5{background:linear-gradient(90deg,#7c3aed,#3b82f6);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.4)}
+.badge-date{background:rgba(255,255,255,.1);color:#cbd5e1;border:1px solid rgba(255,255,255,.15)}
+.badge-files{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.25)}
+
+/* NAV */
+.nav{background:#1e293b;border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap}
+.nav-inner{max-width:1400px;margin:0 auto;display:flex;gap:2px;padding:8px 32px}
+.nav-btn{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#94a3b8;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.nav-btn:hover{background:#334155;color:#e2e8f0}
+.nav-btn.active{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(59,130,246,.4)}
+
+/* MAIN */
+.main{max-width:1400px;margin:0 auto;padding:24px 32px}
+.section{display:none}
+.section.active{display:block}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-title{font-size:14px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+/* SCORE BIG */
+.score-big{text-align:center;padding:24px}
+.score-num{font-size:56px;font-weight:900;letter-spacing:-2px;line-height:1}
+.score-label{font-size:12px;color:#64748b;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.score-delta{font-size:14px;font-weight:700;margin-top:6px}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--red)}
+
+/* PROGRESS BAR */
+.progress-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.progress-label{min-width:140px;font-size:13px;font-weight:600}
+.progress-bar-wrap{flex:1;background:#0f172a;border-radius:4px;height:8px;overflow:hidden}
+.progress-bar{height:100%;border-radius:4px;transition:width 1s ease}
+.progress-val{min-width:35px;text-align:left;font-size:12px;font-weight:700;color:#94a3b8}
+
+/* CHART AREA */
+.chart-wrap{width:100%;overflow-x:auto}
+svg text{font-family:'Segoe UI',Arial,sans-serif}
+
+/* COMPARISON TABLE */
+.comp-table{width:100%;border-collapse:collapse;font-size:12px}
+.comp-table th{background:#0f172a;padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+.comp-table th:first-child{text-align:right}
+.comp-table td{padding:10px 12px;text-align:center;border-bottom:1px solid #1e293b}
+.comp-table td:first-child{text-align:right;font-weight:700;color:#e2e8f0}
+.comp-table tr:hover td{background:rgba(255,255,255,.03)}
+.comp-table .highlight td{background:rgba(59,130,246,.08);border-right:3px solid var(--blue)}
+.score-dot{display:inline-flex;align-items:center;justify-content:center;width:32px;height:20px;border-radius:4px;font-size:11px;font-weight:800}
+.dot-high{background:rgba(34,197,94,.2);color:#86efac}
+.dot-mid{background:rgba(245,158,11,.2);color:#fcd34d}
+.dot-low{background:rgba(239,68,68,.2);color:#fca5a5}
+.dot-vhigh{background:rgba(34,197,94,.35);color:#4ade80}
+
+/* FEATURE PILLS */
+.features-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.feature-pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid}
+.pill-shipped{background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.3)}
+.pill-scaffold{background:rgba(245,158,11,.1);color:#fcd34d;border-color:rgba(245,158,11,.3)}
+.pill-planned{background:rgba(100,116,139,.1);color:#94a3b8;border-color:rgba(100,116,139,.3)}
+.pill-new{background:rgba(168,85,247,.1);color:#d8b4fe;border-color:rgba(168,85,247,.3)}
+
+/* WAVE */
+.wave-card{border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.wave-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.wave-id{font-size:11px;font-weight:800;padding:3px 10px;border-radius:6px;background:#334155;color:#94a3b8}
+.wave-id.inplace{background:rgba(34,197,94,.15);color:#86efac}
+.wave-id.partial{background:rgba(245,158,11,.15);color:#fcd34d}
+.wave-id.planned{background:rgba(100,116,139,.1);color:#64748b}
+.wave-title{font-size:14px;font-weight:700;color:#e2e8f0}
+.wave-goal{font-size:12px;color:#64748b;margin-bottom:12px}
+.wave-items{display:flex;flex-direction:column;gap:6px}
+.wave-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8}
+.wave-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-in-place{background:var(--green)}
+.dot-scaffold-ready{background:var(--amber)}
+.dot-planned{background:var(--slate)}
+.dot-demo-only{background:var(--purple)}
+
+/* INSIGHTS */
+.insight-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.insight-icon{font-size:20px;margin-bottom:8px}
+.insight-title{font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:6px}
+.insight-text{font-size:13px;color:#94a3b8;line-height:1.6}
+.insight-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-top:6px}
+.ib-arch{background:rgba(99,102,241,.2);color:#a5b4fc}
+.ib-ux{background:rgba(6,182,212,.2);color:#67e8f9}
+.ib-biz{background:rgba(245,158,11,.2);color:#fcd34d}
+.ib-data{background:rgba(34,197,94,.2);color:#86efac}
+
+/* COMPETITOR RADAR SVG */
+.radar-container{display:flex;align-items:center;justify-content:center;padding:20px 0}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .main{padding:16px}
+  .header{padding:16px}
+}
+
+/* VERSION HISTORY */
+.version-timeline{display:flex;align-items:flex-end;gap:16px;padding:20px 0;overflow-x:auto}
+.version-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:80px}
+.version-bar{width:56px;border-radius:8px 8px 0 0;position:relative;cursor:default;transition:opacity .2s}
+.version-bar:hover{opacity:.8}
+.version-val{font-size:16px;font-weight:800;color:#f8fafc}
+.version-label{font-size:12px;font-weight:700;color:#64748b}
+.version-date{font-size:10px;color:#475569}
+
+/* GGILS HIGHLIGHT */
+.ggils-section{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(6,182,212,.05));border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:20px;margin-bottom:16px}
+.ggils-title{font-size:16px;font-weight:800;color:#a5b4fc;margin-bottom:4px}
+.ggils-subtitle{font-size:12px;color:#64748b;margin-bottom:12px}
+.ggils-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.ggils-chip{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:8px 12px}
+.ggils-chip-label{font-size:10px;color:#818cf8;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.ggils-chip-val{font-size:13px;color:#e2e8f0;font-weight:600;margin-top:2px}
+
+/* CATEGORY DETAIL */
+.cat-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0f172a;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .15s}
+.cat-row:hover{background:#1e293b}
+.cat-row-left{display:flex;align-items:center;gap:10px}
+.cat-emoji{font-size:18px}
+.cat-name{font-size:14px;font-weight:700;color:#e2e8f0}
+.cat-row-right{display:flex;align-items:center;gap:12px}
+.version-score{text-align:center;min-width:36px}
+.vs-num{font-size:15px;font-weight:800}
+.vs-label{font-size:9px;color:#475569;text-transform:uppercase}
+.vs-v5{color:var(--cyan)}
+.vs-v4{color:#64748b}
+.vs-delta{font-size:12px;font-weight:700;color:var(--green)}
+
+.cat-detail{background:#0f172a;border-radius:0 0 8px 8px;padding:16px;margin-top:-8px;margin-bottom:8px;display:none;border:1px solid var(--border);border-top:none}
+.cat-detail.open{display:block}
+.cat-desc{font-size:13px;color:#94a3b8;line-height:1.7;margin-bottom:12px}
+.cat-pills{display:flex;flex-wrap:wrap;gap:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🗺️</div>
+      <div class="logo-text">
+        <h1>ViaNova Travel OS</h1>
+        <p>ניתוח מקיף — גרסה 5 + ניתוח השוואתי מתחרים</p>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge badge-v5">V5 — יולי 2026</span>
+      <span class="badge badge-files">255 קבצים</span>
+      <span class="badge badge-date">עודכן 12.07.2026</span>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showSection('overview')">📊 סקירה כללית</button>
+    <button class="nav-btn" onclick="showSection('versions')">📈 התקדמות גרסאות</button>
+    <button class="nav-btn" onclick="showSection('v5features')">🆕 חידושי V5</button>
+    <button class="nav-btn" onclick="showSection('categories')">🔍 ניתוח קטגוריות</button>
+    <button class="nav-btn" onclick="showSection('competitors')">⚔️ ניתוח מתחרים</button>
+    <button class="nav-btn" onclick="showSection('roadmap')">🗺️ מפת דרכים</button>
+    <button class="nav-btn" onclick="showSection('insights')">💡 תובנות</button>
+  </div>
+</nav>
+
+<div class="main">
+
+<!-- ═══════════ OVERVIEW ═══════════ -->
+<div id="section-overview" class="section active">
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="card score-big">
+      <div class="score-num" style="background:linear-gradient(135deg,#38bdf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent">92</div>
+      <div class="score-label">ציון כולל V5</div>
+      <div class="score-delta delta-up">↑ +4 מ-V4</div>
+    </div>
+    <div class="card score-big">
+      <div class="score-num" style="color:#22c55e">255</div>
+      <div class="score-label">קבצי קוד</div>
+      <div class="score-delta delta-up">↑ +45 מ-V4</div>
+    </div>
+    <div class="card score-big">
+      <div class="score-num" style="color:#a855f7">13</div>
+      <div class="score-label">מודולי GGILS</div>
+      <div class="score-delta" style="color:#a855f7">⬆ מודול גיאו חדש</div>
+    </div>
+    <div class="card score-big">
+      <div class="score-num" style="color:#f59e0b">7</div>
+      <div class="score-label">גלים בתכנית</div>
+      <div class="score-delta" style="color:#f59e0b">W0→W6 Roadmap</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">ציוני קטגוריות — V4 vs V5</div>
+      <div id="radar-svg-wrap"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">ציונים לפי קטגוריה</div>
+      <div id="progress-bars"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">מה הכי בולט ב-V5</div>
+    <div class="grid-3">
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:3px solid var(--purple)">
+        <div style="font-size:20px;margin-bottom:6px">🌍</div>
+        <div style="font-size:14px;font-weight:700;color:#d8b4fe;margin-bottom:4px">GGILS — שכבת גיאו-מודיעין</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.6">מודול Geographic Intelligence Service חדש לחלוטין: 13 מקורות נתונים, 11 שפות, 8 שלבי Pipeline, SQL Schema מלא, ניהול אמינות מקורות.</div>
+      </div>
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:3px solid var(--blue)">
+        <div style="font-size:20px;margin-bottom:6px">🏗️</div>
+        <div style="font-size:14px;font-weight:700;color:#93c5fd;margin-bottom:4px">תשתית ומפת דרכים</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.6">תכנית פריסה מלאה: 10 יכולות תשתית, 3 פרופילי פריסה (low-ops / balanced / enterprise), 7 גלי מימוש W0→W6.</div>
+      </div>
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:3px solid var(--green)">
+        <div style="font-size:20px;margin-bottom:6px">📡</div>
+        <div style="font-size:14px;font-weight:700;color:#86efac;margin-bottom:4px">אדריכלות בשלה</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.6">Request Layer אחיד (10 סוגי בקשות), Observability Logger (7 ערוצים), Provider Registry עם ניטור בריאות, Domain Entities מלאים.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VERSIONS ═══════════ -->
+<div id="section-versions" class="section">
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">מסע גרסאות — V1 עד V5</div>
+    <div class="chart-wrap">
+      <svg id="version-line-chart" width="900" height="320" viewBox="0 0 900 320"></svg>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">פרטי גרסאות</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:8px;text-align:right;color:#64748b">גרסה</th>
+          <th style="padding:8px;text-align:center;color:#64748b">תאריך</th>
+          <th style="padding:8px;text-align:center;color:#64748b">קבצים</th>
+          <th style="padding:8px;text-align:center;color:#64748b">ציון</th>
+          <th style="padding:8px;text-align:right;color:#64748b">הישג מרכזי</th>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px;font-weight:700">V1</td>
+          <td style="padding:8px;text-align:center;color:#64748b">—</td>
+          <td style="padding:8px;text-align:center">81</td>
+          <td style="padding:8px;text-align:center"><span style="color:#ef4444;font-weight:800">54</span></td>
+          <td style="padding:8px;font-size:12px;color:#94a3b8">MVP ראשוני, 6 עולמות ניווט</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px;font-weight:700">V2</td>
+          <td style="padding:8px;text-align:center;color:#64748b">מאי 7</td>
+          <td style="padding:8px;text-align:center">119</td>
+          <td style="padding:8px;text-align:center"><span style="color:#f59e0b;font-weight:800">69</span></td>
+          <td style="padding:8px;font-size:12px;color:#94a3b8">Execute World, AR בסיסי, B2B ראשוני</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px;font-weight:700">V3</td>
+          <td style="padding:8px;text-align:center;color:#64748b">מאי 25</td>
+          <td style="padding:8px;text-align:center">206</td>
+          <td style="padding:8px;text-align:center"><span style="color:#eab308;font-weight:800">81</span></td>
+          <td style="padding:8px;font-size:12px;color:#94a3b8">Self-Healing Engine, AR Suite, אבטחה</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:8px;font-weight:700">V4</td>
+          <td style="padding:8px;text-align:center;color:#64748b">יוני 7</td>
+          <td style="padding:8px;text-align:center">210</td>
+          <td style="padding:8px;text-align:center"><span style="color:#22c55e;font-weight:800">88</span></td>
+          <td style="padding:8px;font-size:12px;color:#94a3b8">IndexedDB, REST API, Cross-AI, 5 Engines</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;font-weight:700;color:#38bdf8">V5 ✨</td>
+          <td style="padding:8px;text-align:center;color:#64748b">יולי 12</td>
+          <td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">255</td>
+          <td style="padding:8px;text-align:center"><span style="color:#38bdf8;font-weight:800;font-size:18px">92</span></td>
+          <td style="padding:8px;font-size:12px;color:#94a3b8">GGILS, Infra Spec, Roadmap 7 גלים, Observability</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">שינויי ציון לפי קטגוריה (V4→V5)</div>
+      <div id="delta-chart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ V5 FEATURES ═══════════ -->
+<div id="section-v5features" class="section">
+
+  <div class="ggils-section" style="margin-bottom:20px">
+    <div class="ggils-title">🌍 GGILS — Global Geographic Intelligence Layer Service</div>
+    <div class="ggils-subtitle">המודול הגדול ביותר שנוסף ב-V5 — שכבת גיאו-מודיעין גלובלית</div>
+    <div class="ggils-grid">
+      <div class="ggils-chip">
+        <div class="ggils-chip-label">מקורות נתונים</div>
+        <div class="ggils-chip-val">OSM, GeoNames, Wikidata, UNESCO, IATA, OTM, Gov...</div>
+      </div>
+      <div class="ggils-chip">
+        <div class="ggils-chip-label">שפות נתמכות</div>
+        <div class="ggils-chip-val">11 שפות: en, he, ar, fr, es, pt, it, de, ru, zh, ja</div>
+      </div>
+      <div class="ggils-chip">
+        <div class="ggils-chip-label">Pipeline שלבים</div>
+        <div class="ggils-chip-val">8: ingestion → validation → normalization → resolution → translation → alias → reliability → publication</div>
+      </div>
+      <div class="ggils-chip">
+        <div class="ggils-chip-label">טבלאות SQL</div>
+        <div class="ggils-chip-val">7 טבלאות: place_identity, source_ref, localized_name, alias, pronunciation, reliability_profile, tourism_profile</div>
+      </div>
+      <div class="ggils-chip">
+        <div class="ggils-chip-label">סטטוס</div>
+        <div class="ggils-chip-val">Foundation 0.1.0 — disabled by default, enabled for internal validation</div>
+      </div>
+      <div class="ggils-chip">
+        <div class="ggils-chip-label">ניהול סיכונים</div>
+        <div class="ggils-chip-val">Rollback plan, Feature flags, Deployment governance, Monitoring signals</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">🏗️ תשתית ופריסה — Infrastructure Spec</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">מפרט vendor-neutral מלא לתשתית ענן</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:#0f172a;border-radius:6px" v-for="cap in caps">
+          <span style="font-size:13px;color:#e2e8f0">10 יכולות תשתית מוגדרות</span>
+          <span class="badge badge-files" style="font-size:10px">P1-P4</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <div style="padding:10px;background:#0f172a;border-radius:8px;text-align:center">
+          <div style="font-size:22px;font-weight:800;color:#6366f1">Low-Ops</div>
+          <div style="font-size:10px;color:#64748b">Lovable Cloud / Supabase+Vercel</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;text-align:center">
+          <div style="font-size:22px;font-weight:800;color:#3b82f6">Balanced</div>
+          <div style="font-size:10px;color:#64748b">AWS / GCP / Azure</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;text-align:center;grid-column:span 2">
+          <div style="font-size:22px;font-weight:800;color:#22c55e">Enterprise</div>
+          <div style="font-size:10px;color:#64748b">Full control, custom SLAs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📡 Observability & Provider Registry</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">שכבת ניטור ו-Logging מבנית חדשה</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+        <div style="padding:8px;background:#0f172a;border-radius:6px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#06b6d4">7</div>
+          <div style="font-size:10px;color:#64748b">ערוצי Log</div>
+        </div>
+        <div style="padding:8px;background:#0f172a;border-radius:6px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#22c55e">13</div>
+          <div style="font-size:10px;color:#64748b">Provider Domains</div>
+        </div>
+        <div style="padding:8px;background:#0f172a;border-radius:6px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#a855f7">10</div>
+          <div style="font-size:10px;color:#64748b">Request Types</div>
+        </div>
+        <div style="padding:8px;background:#0f172a;border-radius:6px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#f59e0b">5</div>
+          <div style="font-size:10px;color:#64748b">Activation Waves</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#64748b">ערוצי לוג: app | provider | qa | policy | event | trace | business</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px">Request types: planning.draft | itinerary.recompute | execute.snapshot | prediction.refresh | navigation.route | ar.launch...</div>
+    </div>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">🏠 8 דפי Admin פנימיים חדשים</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>🏗️</span><span style="color:#e2e8f0">/architecture</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>🗄️</span><span style="color:#e2e8f0">/data-model</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>⚙️</span><span style="color:#e2e8f0">/orchestration</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>☁️</span><span style="color:#e2e8f0">/infrastructure</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>🔐</span><span style="color:#e2e8f0">/security</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>🗺️</span><span style="color:#e2e8f0">/roadmap</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px;background:#0f172a;border-radius:6px"><span>🔍</span><span style="color:#e2e8f0">/qa-audit</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎮 פיצ'רים UX חדשים</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <div style="padding:10px;background:#0f172a;border-radius:8px">
+          <div style="font-weight:700;color:#e2e8f0;margin-bottom:4px">🏆 Gamification Tab</div>
+          <div style="color:#64748b">מאתגרים עם נקודות, עיטורים, לונדון / ליסבון / טוקיו</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px">
+          <div style="font-weight:700;color:#e2e8f0;margin-bottom:4px">🗺️ Travel Roadmap</div>
+          <div style="color:#64748b">מעקב אישי אחר יעדים שביקרת ויעדים עתידיים</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px">
+          <div style="font-weight:700;color:#e2e8f0;margin-bottom:4px">🔄 Mode Rename</div>
+          <div style="color:#64748b">Simplify → Free, Standard → Member</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🧪 Test Suite & Domain Entities</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <div style="padding:10px;background:#0f172a;border-radius:8px">
+          <div style="font-weight:700;color:#e2e8f0;margin-bottom:4px">🧪 Vitest Tests</div>
+          <div style="color:#64748b">GGILS foundation tests, example tests, setup</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px">
+          <div style="font-weight:700;color:#e2e8f0;margin-bottom:4px">📦 Domain Entities</div>
+          <div style="color:#64748b">UserRecord, TravelerProfile, DomainTrip, DestinationRecord, ItineraryItem — persistence-agnostic</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px">
+          <div style="font-weight:700;color:#e2e8f0;margin-bottom:4px">📜 QA Integration Points</div>
+          <div style="color:#64748b">Request validation, result classification, confidence scoring</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Functional Status Summary -->
+  <div class="card">
+    <div class="card-title">סטטוס פונקציונלי — מה עובד, מה מוכן לפריסה</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px;border-top:3px solid var(--green)">
+        <div style="font-size:28px;font-weight:900;color:var(--green)">Shipped</div>
+        <div style="font-size:11px;color:#64748b;margin:6px 0">מומש ופועל</div>
+        <div style="font-size:12px;color:#94a3b8">Route Colors, Mode Rename, 6 Worlds, AR Suite, Self-Healing, QA Layer</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px;border-top:3px solid var(--amber)">
+        <div style="font-size:28px;font-weight:900;color:var(--amber)">Scaffold</div>
+        <div style="font-size:11px;color:#64748b;margin:6px 0">מוכן לפריסה</div>
+        <div style="font-size:12px;color:#94a3b8">Trip Persistence, Orchestration Backbone, Provider Registry, Guardrails</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px;border-top:3px solid var(--slate)">
+        <div style="font-size:28px;font-weight:900;color:var(--slate)">Planned</div>
+        <div style="font-size:11px;color:#64748b;margin:6px 0">בתכנון</div>
+        <div style="font-size:12px;color:#94a3b8">Live Providers, Real-time Alerts, B2B SSO, GGILS Production</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px;border-top:3px solid var(--purple)">
+        <div style="font-size:28px;font-weight:900;color:var(--purple)">Demo</div>
+        <div style="font-size:11px;color:#64748b;margin:6px 0">נשאר Mock</div>
+        <div style="font-size:12px;color:#94a3b8">כל 13 Provider Domains כרגע ב-mock mode</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CATEGORIES ═══════════ -->
+<div id="section-categories" class="section">
+  <div class="card">
+    <div class="card-title">ניתוח 9 קטגוריות — השוואה V4 vs V5 (לחץ להרחבה)</div>
+    <div id="categories-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════ COMPETITORS ═══════════ -->
+<div id="section-competitors" class="section">
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">ViaNova מול 7 מתחרים מרכזיים ב-Travel Tech</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px">ציון 1-10 לפי 10 ממדי הערכה. ViaNova כרגע ב-Demo mode; פוטנציאל מלא בעת פריסה מלאה.</div>
+    <div class="chart-wrap">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th style="min-width:180px">מוצר / פלטפורמה</th>
+            <th>🤖 AI</th>
+            <th>🗺️ GIS</th>
+            <th>📅 תכנון</th>
+            <th>👓 AR</th>
+            <th>🚌 Multi-Modal</th>
+            <th>💼 B2B</th>
+            <th>♿ נגישות</th>
+            <th>⚡ Real-time</th>
+            <th>🏗️ ארכיטקטורה</th>
+            <th>🔓 Open</th>
+            <th>ממוצע</th>
+          </tr>
+        </thead>
+        <tbody id="comp-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">🎯 יתרונות ייחודיים של ViaNova</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--purple)">
+          <div style="font-weight:700;color:#d8b4fe;margin-bottom:4px">AR Suite מלא + AR Experience</div>
+          <div style="color:#64748b">חבילת AR מהמפותחת ביותר בקרב מתחרים — arRegistry, arSmartEngine, arPhases, ARExperience. אף מתחרה ישיר לא מציע זאת.</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--green)">
+          <div style="font-weight:700;color:#86efac;margin-bottom:4px">GGILS — Geographic Intelligence Layer</div>
+          <div style="color:#64748b">מודול GIS מתקדם שאף Travel Planner לא מציע: 13 מקורות, multi-lingual places, reliability scoring לכל יעד.</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--blue)">
+          <div style="font-weight:700;color:#93c5fd;margin-bottom:4px">Self-Healing Engine ייחודי</div>
+          <div style="color:#64748b">6 שכבות חישה, alert→suggestion→apply, ייחודי לגמרי בשוק. אין מקבילה אצל Wanderlog, TripIt או Layla.</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--cyan)">
+          <div style="font-weight:700;color:#67e8f9;margin-bottom:4px">4 מודוסי משתמש + Kids Mode</div>
+          <div style="color:#64748b">solo / adult / kids / accessibility — Kids Mode עם ממשק מותאם. נגישות מלאה. ייחודי בשוק.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚠️ פערים קריטיים מול מתחרים</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--red)">
+          <div style="font-weight:700;color:#fca5a5;margin-bottom:4px">Real-time Data — פער גדול vs Google Maps</div>
+          <div style="color:#64748b">כל 13 Provider Domains ב-mock mode. Google Maps, TripIt ו-Booking.com מציעים real-time data מלא. זה הפער הקריטי ביותר לסגור.</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--amber)">
+          <div style="font-weight:700;color:#fcd34d;margin-bottom:4px">Offline Capability — פחות מ-Sygic/TripIt</div>
+          <div style="color:#64748b">Sygic Travel ו-TripIt מציעים offline mode חזק. ViaNova עדיין web-only, תלוי חיבור.</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--amber)">
+          <div style="font-weight:700;color:#fcd34d;margin-bottom:4px">B2B — פחות ממתמחים כמו Navan</div>
+          <div style="color:#64748b">Navan ו-TravelPerk הם כלים B2B ייעודיים עם ERP integration, policy enforcement, expense management מלא. ViaNova Bleisure עדיין scaffold.</div>
+        </div>
+        <div style="padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--slate)">
+          <div style="font-weight:700;color:#94a3b8;margin-bottom:4px">AI Generation — אחורי Layla/Roam Around</div>
+          <div style="color:#64748b">Layla ו-Roam Around מציעים AI trip generation מהיר. ViaNova AI Planning עדיין scaffold עם cross-AI מוכן אך לא מחובר.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 ניתוח מצב שוק — Travel Tech 2026</div>
+    <div class="grid-3">
+      <div style="padding:16px;background:#0f172a;border-radius:8px">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">🎯 AI Travel Planners (מתחרים ישירים)</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.7">
+          <b style="color:#67e8f9">Layla by Desty</b> — AI-first, conversational, booking integration<br>
+          <b style="color:#67e8f9">Roam Around</b> — Quick AI itinerary, no deep maps<br>
+          <b style="color:#67e8f9">GuideGeek</b> — WhatsApp-based AI travel assistant<br>
+          <span style="color:#64748b">ViaNova's edge: AR, Self-Healing, Maps depth</span>
+        </div>
+      </div>
+      <div style="padding:16px;background:#0f172a;border-radius:8px">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">🗺️ Trip Planning + Maps (מתחרים קרובים)</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.7">
+          <b style="color:#67e8f9">Wanderlog</b> — Trip planning + maps, collaboration<br>
+          <b style="color:#67e8f9">Sygic Travel</b> — Offline maps + itineraries<br>
+          <b style="color:#67e8f9">Roadtrippers</b> — Road trip focused<br>
+          <span style="color:#64748b">ViaNova's edge: GGILS depth, 6 worlds, AI layer</span>
+        </div>
+      </div>
+      <div style="padding:16px;background:#0f172a;border-radius:8px">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">🏢 B2B Corporate (פחות רלוונטי עכשיו)</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.7">
+          <b style="color:#67e8f9">Navan (TripActions)</b> — Enterprise corporate travel<br>
+          <b style="color:#67e8f9">TravelPerk</b> — SMB corporate travel<br>
+          <b style="color:#67e8f9">Egencia (Expedia B2B)</b> — Large enterprise<br>
+          <span style="color:#64748b">ViaNova: Bleisure focus, not pure corporate</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ROADMAP ═══════════ -->
+<div id="section-roadmap" class="section">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">מפת דרכים — W0 עד W6 (כפי שמוגדר ב-V5 deliveryPlan.ts)</div>
+    <div style="font-size:13px;color:#64748b;padding:10px;background:#0f172a;border-radius:8px;border-right:3px solid var(--blue)">
+      כלל 7 הגלים נשמר Demo-Preserving — לא פוגע בדמו הקיים. שינויים מתבצעים ברקע; UX משתנה רק כשיש הצדקה מוצרית.
+    </div>
+  </div>
+
+  <div id="waves-list"></div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">שערי מוכנות (Readiness Gates)</div>
+    <div class="grid-2">
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:4px solid var(--green)">
+        <div style="font-weight:700;color:#86efac;margin-bottom:4px">✅ Trust Gate — נפתח ב-W1</div>
+        <div style="font-size:12px;color:#64748b">QA metadata, mock/live/mixed classification, basic traceability</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--green)">סטטוס: MET</div>
+      </div>
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:4px solid var(--amber)">
+        <div style="font-weight:700;color:#fcd34d;margin-bottom:4px">⚠️ Persistence Gate — מתוכנן W2</div>
+        <div style="font-size:12px;color:#64748b">Trip persistence, durable itinerary storage, backend shell</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--amber)">סטטוס: PARTIAL</div>
+      </div>
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:4px solid var(--slate)">
+        <div style="font-weight:700;color:#94a3b8;margin-bottom:4px">⏳ Provider Gate — W3</div>
+        <div style="font-size:12px;color:#64748b">Live maps/routing, weather, events, one booking domain live</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--slate)">סטטוס: PENDING</div>
+      </div>
+      <div style="padding:12px;background:#0f172a;border-radius:8px;border-right:4px solid var(--slate)">
+        <div style="font-weight:700;color:#94a3b8;margin-bottom:4px">⏳ Operational Gate — W4</div>
+        <div style="font-size:12px;color:#64748b">Live alerts, background jobs, notification hooks</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--slate)">סטטוס: PENDING</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ INSIGHTS ═══════════ -->
+<div id="section-insights" class="section">
+  <div class="grid-2" style="margin-bottom:20px">
+    <div>
+      <div style="font-size:16px;font-weight:800;color:#e2e8f0;margin-bottom:12px">💼 לבעלי עסק / קובעי מדיניות</div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🏆</div>
+        <div class="insight-title">ViaNova V5 — מערכת ברמת Product Maturity גבוהה</div>
+        <div class="insight-text">V5 מציגה תכנון ארכיטקטוני ברמה מקצועית גבוהה. הצוות הגדיר תכנית פריסה מפורטת (7 גלים), הגדיר 10 יכולות תשתית, ויצר SQL schema מלא למאגר הגיאוגרפי. זה מראה שיש כאן חשיבה לטווח ארוך, לא רק דמו.</div>
+        <span class="insight-badge ib-biz">בשלות עסקית</span>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🌍</div>
+        <div class="insight-title">יתרון ייחודי: Geographic Intelligence Layer</div>
+        <div class="insight-text">ה-GGILS שנוסף ב-V5 הוא יכולת שאף מתחרה ישיר לא מציע — שכבת מידע גיאוגרפי מרובת מקורות (UNESCO, Wikidata, OSM) עם תמיכה ב-11 שפות, כולל עברית וערבית. זה נותן לכם יתרון תחרותי משמעותי לשוק הישראלי ולשווקים מרובי שפות.</div>
+        <span class="insight-badge ib-arch">יתרון ייחודי</span>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">⚡</div>
+        <div class="insight-title">הדבר הדחוף ביותר: חיבור לנתונים אמיתיים</div>
+        <div class="insight-text">כל 13 רכיבי הנתונים (מפות, חיפוש, מזג אוויר, טיסות, לינה) עובדים כרגע עם נתוני דמו. זה מה שמפריד בין מצגת מרשימה למוצר פועל. הגל הבא (W3) צריך לחבר לפחות מפות ומזג אוויר לנתונים אמיתיים.</div>
+        <span class="insight-badge ib-biz">עדיפות גבוהה</span>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">📊</div>
+        <div class="insight-title">עמדה תחרותית: "AI Travel OS" — נישה פנויה</div>
+        <div class="insight-text">Wanderlog טוב במפות ותכנון. Layla טוב ב-AI. Google Maps מלך הניווט. אף אחד לא מציע את השילוב: AI + GIS עמוק + AR + Self-Healing + Kids Mode + Accessibility. זו הנישה שViaNova יכולה לכבוש.</div>
+        <span class="insight-badge ib-biz">אסטרטגיה</span>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:16px;font-weight:800;color:#e2e8f0;margin-bottom:12px">🔧 לצוות הטכני</div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🏗️</div>
+        <div class="insight-title">V5 — Modular Monolith בשלה, מוכנה ל-Scale</div>
+        <div class="insight-text">הארכיטקטורה בV5 עוקבת אחר עקרונות Clean Architecture: Domain Entities נפרד מ-Infrastructure, Repository Pattern, Adapter Pattern, Event Bus, Feature Flags. ה-src/core/ directory הוא ה-nucleus של מערכת production-ready.</div>
+        <span class="insight-badge ib-arch">ארכיטקטורה</span>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🧪</div>
+        <div class="insight-title">Test Coverage — נקודת פתיחה טובה, צריך הרחבה</div>
+        <div class="insight-text">V5 מוסיפה Vitest tests לGGILS foundation. הטסטים בודקים: feature flags, multilingual resolution, reliability engine, tourism intelligence. הכיוון נכון — צריך להרחיב coverage לכל core modules.</div>
+        <span class="insight-badge ib-arch">איכות קוד</span>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🔐</div>
+        <div class="insight-title">Security & Guardrails — שכבה מלאה קיימת</div>
+        <div class="insight-text">accessControl.ts, audit.ts, aiGuardrails.ts, secretsBoundary.ts, privacy.ts + הcore/policy/guardrails.ts החדש ב-V5. ה-Guardrails מגדירים allow/review/block flow. המערכת מוכנה לאבטחה ברמת production בעת הפעלת הbackend.</div>
+        <span class="insight-badge ib-data">אבטחה</span>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon">🚀</div>
+        <div class="insight-title">Next Steps: W2 Backend Activation</div>
+        <div class="insight-text">requestLayer.ts + inMemoryStore.ts + server/trip-api.mjs כבר קיימים. הצעד הבא הוא לחבר: 1) PostgreSQL לRepos, 2) Supabase/Vercel לdeploy, 3) מפות Mapbox/Google ל-live, 4) GGILS provider connectors להפעלה. הקוד מוכן — רק חיבורים חסרים.</div>
+        <span class="insight-badge ib-arch">Next Steps</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 סיכום מנהלים — V5 ביולי 2026</div>
+    <div style="font-size:13px;color:#94a3b8;line-height:1.8">
+      <p style="margin-bottom:8px">ViaNova V5 (255 קבצים, 12 יולי 2026) מסמנת מעבר חשוב: ממוצר MVP מרשים לפלטפורמה עם תכנית ייצור ברורה. הציון הכולל עלה ל-<b style="color:#38bdf8">92/100</b>, עלייה של 4 נקודות מV4.</p>
+      <p style="margin-bottom:8px">החידוש הגדול ביותר הוא <b style="color:#d8b4fe">GGILS</b> — שכבת מידע גיאוגרפי גלובלית עם 13 מקורות, 11 שפות, ו-SQL Schema מלא. זה ממצב את ViaNova מעל כל Travel Planner אחר מבחינת עומק מידע גיאוגרפי.</p>
+      <p style="margin-bottom:8px">תכנית הפריסה בגלים W0-W6 מראה שהצוות חושב בצורה מסודרת על המעבר מדמו לייצור, תוך שמירה על UX הקיים.</p>
+      <p><b style="color:#fcd34d">הפעולה הדחופה ביותר:</b> חיבור לפחות 2-3 Provider Domains לנתונים אמיתיים (מפות, מזג אוויר, חיפוש מקומות) — זה מה שיהפוך את V6 ממצגת טכנולוגית למוצר שמשתמשים יכולים להשתמש בו.</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+
+<script>
+const CATEGORIES = [
+  {
+    id:'ux', label:'UX וניווט', emoji:'🎨',
+    v1:50, v2:65, v3:78, v4:85, v5:87,
+    color:'#06b6d4',
+    v5notes: 'Gamification Tab חדש עם אתגרים ונקודות. Travel Roadmap למעקב אישי. Mode Rename (Free/Member). Kids Theme נשמר. 6 עולמות ניווט יציבים.',
+    pills:['🏆 Gamification Tab — shipped','🗺️ Travel Roadmap — shipped','🔄 Free/Member Rename — shipped','👶 Kids Mode — shell-ready','♿ Accessibility Mode — shipped']
+  },
+  {
+    id:'arch', label:'ארכיטקטורה טכנית', emoji:'🏗️',
+    v1:60, v2:72, v3:85, v4:92, v5:97,
+    color:'#6366f1',
+    v5notes: 'GGILS module (13 קבצים), Infrastructure Spec (capabilities + profiles), Request Layer אחיד (10 סוגי בקשות), Observability Logger (7 ערוצים), Provider Registry עם health tracking, Domain Entities persistence-agnostic, 8 דפי Admin, QA Integration Points.',
+    pills:['🌍 GGILS Module — foundation','☁️ Infrastructure Spec — scaffold','📡 Request Layer — in-place','📊 Observability Logger — in-place','📦 Domain Entities — in-place','🩺 Provider Registry — in-place']
+  },
+  {
+    id:'gis', label:'GIS ומפות', emoji:'🗺️',
+    v1:40, v2:55, v3:72, v4:78, v5:85,
+    color:'#22c55e',
+    v5notes: 'GGILS הוא קפיצת מדרגה ענקית ב-GIS: 13 מקורות (OSM, Wikidata, UNESCO, IATA...), 7 טבלאות SQL, pipeline 8 שלבים, reliability scoring, tourism intelligence. עדיין disabled by default אך Schema מלא ל-Production.',
+    pills:['🌍 GGILS Schema SQL — foundation','📍 OSM/Wikidata connectors — mock_ready','🌐 11 שפות multi-lingual — foundation','🗺️ MapLibre 3D Map — shipped','📦 GEO data files — shipped','🔍 Global Settlements — shipped']
+  },
+  {
+    id:'ai', label:'בינה מלאכותית', emoji:'🤖',
+    v1:45, v2:68, v3:75, v4:83, v5:86,
+    color:'#a855f7',
+    v5notes: 'AI domains נשארים ב-mock mode. Cross-AI orchestration scaffold בV4 נשמר. ar.launch נוסף כRequest Type. copilot.ask מקושר ל-RequestLayer. AI Planner Engine שלם. חסר: חיבור למודל AI אמיתי.',
+    pills:['🤖 Cross-AI Scaffold — scaffold-ready','💬 copilot.ask Request — in-place','🧠 AI Planner Engine — scaffold','👓 AR Launch Request — in-place','🔮 Prediction Engine — scaffold','🛡️ AI Guardrails — shipped']
+  },
+  {
+    id:'execute', label:'Execute World / Live', emoji:'⚡',
+    v1:20, v2:65, v3:76, v4:82, v5:83,
+    color:'#f59e0b',
+    v5notes: 'Execute snapshot מקושר ל-RequestLayer. Live Alerts, Live Maps, Live Weather, Live Ops tabs קיימות אך על נתוני Mock. SelfHealingEngine נשאר. הגל W4 מתכנן Live Alerts ו-background jobs.',
+    pills:['📸 Execute Snapshot — request layer','🔴 Live Alerts Tab — demo only','🗺️ Live Maps Tab — demo only','🌤️ Live Weather Tab — demo only','🔧 Self-Healing Engine — shipped','📅 Scheduler — scaffold']
+  },
+  {
+    id:'b2b', label:'B2B ועסקים', emoji:'💼',
+    v1:10, v2:45, v3:65, v4:71, v5:74,
+    color:'#f97316',
+    v5notes: 'Business user type נשאר. Bleisure mode scaffold. Business provider domain מוגדר ב-operationMode. Travel roadmap יש פוטנציאל B2B. אין עדיין policy enforcement, expense management, SSO — אלה W6 בתכנית.',
+    pills:['💼 Business User Type — shipped','🏢 Bleisure Mode — scaffold','📊 Business Provider Domain — mock','🔐 Business SSO — planned','💳 Expense Management — planned','📋 Policy Enforcement — planned']
+  },
+  {
+    id:'persist', label:'שמירת נתונים', emoji:'💾',
+    v1:5, v2:15, v3:25, v4:75, v5:84,
+    color:'#ef4444',
+    v5notes: 'GGILS SQL Schema (7 טבלאות) זה הבסיס ל-Production DB. Domain Entities persistence-agnostic מאפשרות Swap-In ל-PostgreSQL. In-memory store + Repository interfaces מוכנים. GGILS AdminDataOps Layer עם מבנה layer registry מלא.',
+    pills:['🗄️ GGILS SQL Schema — foundation','📦 Domain Entities — in-place','💾 InMemory Store — scaffold-ready','🔄 Repository Interfaces — in-place','📊 Admin Data Ops — shipped','🔧 IndexedDB/REST API — scaffold (V4)']
+  },
+  {
+    id:'security', label:'אבטחה ועמידות', emoji:'🔐',
+    v1:20, v2:40, v3:72, v4:82, v5:88,
+    color:'#ec4899',
+    v5notes: 'core/policy/guardrails.ts חדש (allow/review/block flow). Observability logging מחובר לכל security paths. QA Integration Points עם confidence scoring. GGILS Governance + Rollback Plan. Deployment Governance. 6 security modules נשמרים.',
+    pills:['🛡️ Policy Guardrails — in-place','📊 Observability Logging — in-place','🔐 Access Control — shipped','📜 Audit Trail — shipped','🤖 AI Guardrails — shipped','🔑 Secrets Boundary — shipped']
+  },
+  {
+    id:'spec', label:'עמידה באפיון', emoji:'📋',
+    v1:38, v2:56, v3:78, v4:85, v5:93,
+    color:'#0ea5e9',
+    v5notes: 'Functional Upgrade Pack tracking מלא עם סטטוס per-item. Delivery Plan עם 7 גלים ו-8 workstreams. Readiness Gates מוגדרות. Mode Rename לפי Spec. Route Colors (green/cyan/magenta) shipped. Internal pages לReview הSpecs.',
+    pills:['✅ Functional Upgrade Tracking — shipped','📋 Delivery Plan 7 Waves — shipped','🎯 Readiness Gates — in-place','🎨 Route Colors (spec §5.2) — shipped','🔄 Mode Rename (spec §2.1) — shipped','🛣️ Route Scope (spec §5.1) — scaffold']
+  },
+];
+
+const COMPETITORS = [
+  { name:'ViaNova V5 ✨', highlight:true,  ai:8, gis:8, plan:9, ar:8, multi:7, b2b:5, acc:8, rt:3, arch:10, open:7 },
+  { name:'Google Maps',    highlight:false, ai:8, gis:10,plan:5, ar:4, multi:9, b2b:3, acc:7, rt:10,arch:9, open:4 },
+  { name:'Wanderlog',      highlight:false, ai:6, gis:7, plan:8, ar:1, multi:5, b2b:3, acc:3, rt:5, arch:5, open:6 },
+  { name:'TripIt',         highlight:false, ai:4, gis:3, plan:6, ar:1, multi:4, b2b:5, acc:2, rt:8, arch:5, open:5 },
+  { name:'Layla AI',       highlight:false, ai:9, gis:4, plan:8, ar:1, multi:3, b2b:2, acc:2, rt:3, arch:5, open:5 },
+  { name:'Sygic Travel',   highlight:false, ai:4, gis:8, plan:7, ar:2, multi:5, b2b:2, acc:4, rt:5, arch:6, open:3 },
+  { name:'Navan (B2B)',    highlight:false, ai:6, gis:3, plan:6, ar:1, multi:5, b2b:10,acc:4, rt:8, arch:7, open:4 },
+  { name:'Booking.com',    highlight:false, ai:7, gis:5, plan:7, ar:2, multi:4, b2b:4, acc:3, rt:9, arch:8, open:3 },
+];
+
+const WAVES = [
+  { id:'W0', title:'Wave 0 — Protection & Baseline', goal:'הגנה על Demo-Preserving Rule', status:'in-place',
+    items:[
+      {title:'שמירת Demo UX וה-behavior הנוכחי', s:'in-place'},
+      {title:'שמירת ערך המוק/סימולציה', s:'in-place'},
+      {title:'שמירת seams הארכיטקטורה', s:'in-place'},
+    ]},
+  { id:'W1', title:'Wave 1 — Trust & Structural Readiness', goal:'QA, ארכיטקטורה seams, observability', status:'in-place',
+    items:[
+      {title:'QA layer foundations (src/lib/qa/)', s:'in-place'},
+      {title:'Target architecture seams (src/core/)', s:'in-place'},
+      {title:'Data/domain model alignment (entities.ts)', s:'in-place'},
+      {title:'Provider registry discipline (registry.ts)', s:'in-place'},
+      {title:'Repository interfaces (repositories.ts)', s:'in-place'},
+      {title:'Observability foundations (logger.ts)', s:'in-place'},
+    ]},
+  { id:'W2', title:'Wave 2 — Persistence & Backend Backbone', goal:'Trip persistence, backend shell, provider boundaries', status:'partial',
+    items:[
+      {title:'Trip persistence (in-memory → Postgres swap)', s:'scaffold-ready'},
+      {title:'Itinerary persistence (repositories.ts)', s:'scaffold-ready'},
+      {title:'Backend shell (requestLayer.ts)', s:'scaffold-ready'},
+      {title:'Protected provider boundaries (secretsBoundary)', s:'scaffold-ready'},
+    ]},
+  { id:'W3', title:'Wave 3 — Planning Goes Live Gradually', goal:'Live providers + planning backend', status:'planned',
+    items:[
+      {title:'Live maps / routing / geocoding', s:'planned'},
+      {title:'Live weather provider', s:'planned'},
+      {title:'Live events provider', s:'planned'},
+      {title:'One booking domain live (flights/stays)', s:'planned'},
+      {title:'Normalized provider responses (adapter.ts)', s:'scaffold-ready'},
+    ]},
+  { id:'W4', title:'Wave 4 — Execute / Live Operations', goal:'Live alerts, route-aware flows, background jobs', status:'planned',
+    items:[
+      {title:'Live alerts', s:'planned'},
+      {title:'Near-me / route-aware flows', s:'planned'},
+      {title:'Notification hooks (eventBus.ts)', s:'scaffold-ready'},
+      {title:'Background jobs / refresh cycles (scheduler.ts)', s:'scaffold-ready'},
+    ]},
+  { id:'W5', title:'Wave 5 — Controlled Intelligence Expansion', goal:'Self-healing proposals, guardrails, Cross-AI', status:'planned',
+    items:[
+      {title:'Self-healing proposal persistence', s:'planned'},
+      {title:'Guardrails & review-needed flows (guardrails.ts)', s:'scaffold-ready'},
+      {title:'Cross-AI hidden validation (crossAI.ts)', s:'scaffold-ready'},
+    ]},
+  { id:'W6', title:'Wave 6 — Business / Agent / Mature Ops', goal:'Agent readiness, review flows, admin/ops', status:'planned',
+    items:[
+      {title:'Agent-facing readiness', s:'planned'},
+      {title:'Review / approve / override flows', s:'planned'},
+      {title:'Admin / ops views', s:'planned'},
+      {title:'Stronger internal auditability (audit.ts)', s:'scaffold-ready'},
+    ]},
+];
+
+function dotClass(s) {
+  if(s==='in-place') return 'dot-in-place';
+  if(s==='scaffold-ready') return 'dot-scaffold-ready';
+  if(s==='demo-only') return 'dot-demo-only';
+  return 'dot-planned';
+}
+function waveStatusClass(s) {
+  if(s==='in-place') return 'inplace';
+  if(s==='partial') return 'partial';
+  return 'planned';
+}
+function pillClass(p) {
+  if(p.includes('shipped') || p.includes('in-place')) return 'pill-shipped';
+  if(p.includes('scaffold') || p.includes('foundation')) return 'pill-scaffold';
+  if(p.includes('planned')) return 'pill-planned';
+  return 'pill-new';
+}
+
+function scoreColor(n) {
+  if(n>=8) return 'dot-vhigh';
+  if(n>=6) return 'dot-high';
+  if(n>=4) return 'dot-mid';
+  return 'dot-low';
+}
+
+function avg(c) {
+  const {ai,gis,plan,ar,multi,b2b,acc,rt,arch,open} = c;
+  return ((ai+gis+plan+ar+multi+b2b+acc+rt+arch+open)/10).toFixed(1);
+}
+
+// RENDER PROGRESS BARS
+function renderProgressBars() {
+  const el = document.getElementById('progress-bars');
+  el.innerHTML = CATEGORIES.map(c => {
+    const delta = c.v5 - c.v4;
+    return `<div class="progress-row">
+      <div class="progress-label">${c.emoji} ${c.label}</div>
+      <div style="flex:1">
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <div style="flex:1;background:#0f172a;border-radius:4px;height:6px;overflow:hidden">
+            <div class="progress-bar" style="width:${c.v4}%;background:#334155;height:6px"></div>
+          </div>
+          <div class="progress-val" style="color:#475569;font-size:10px">${c.v4}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <div style="flex:1;background:#0f172a;border-radius:4px;height:8px;overflow:hidden">
+            <div class="progress-bar" style="width:${c.v5}%;background:${c.color};height:8px"></div>
+          </div>
+          <div class="progress-val" style="color:${c.color}">${c.v5}</div>
+        </div>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:var(--green);min-width:30px">+${delta}</span>
+    </div>`;
+  }).join('');
+}
+
+// RENDER RADAR SVG
+function renderRadar() {
+  const wrap = document.getElementById('radar-svg-wrap');
+  const N = CATEGORIES.length;
+  const cx = 200, cy = 200, r = 140;
+  const angles = CATEGORIES.map((_, i) => (Math.PI * 2 * i / N) - Math.PI/2);
+
+  function point(val, i) {
+    const a = angles[i];
+    const d = (val/100) * r;
+    return [cx + Math.cos(a)*d, cy + Math.sin(a)*d];
+  }
+
+  let svg = `<svg viewBox="0 0 400 400" width="100%" style="max-height:340px">`;
+
+  // Grid circles
+  [20,40,60,80,100].forEach(v => {
+    const rr = (v/100)*r;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="#1e293b" stroke-width="1"/>`;
+    if(v===60||v===80) svg += `<text x="${cx+rr+2}" y="${cy-2}" fill="#334155" font-size="9">${v}</text>`;
+  });
+
+  // Axis lines
+  angles.forEach((a, i) => {
+    const x2 = cx + Math.cos(a)*r, y2 = cy + Math.sin(a)*r;
+    svg += `<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="#1e293b" stroke-width="1"/>`;
+    // Labels
+    const lx = cx + Math.cos(a)*(r+18), ly = cy + Math.sin(a)*(r+18);
+    const anchor = Math.cos(a) > 0.1 ? 'start' : Math.cos(a) < -0.1 ? 'end' : 'middle';
+    svg += `<text x="${lx}" y="${ly+4}" fill="#64748b" font-size="10" text-anchor="${anchor}">${CATEGORIES[i].emoji}</text>`;
+  });
+
+  // V4 polygon
+  const v4pts = CATEGORIES.map((c,i) => point(c.v4,i).join(',')).join(' ');
+  svg += `<polygon points="${v4pts}" fill="rgba(100,116,139,0.1)" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,2"/>`;
+
+  // V5 polygon
+  const v5pts = CATEGORIES.map((c,i) => point(c.v5,i).join(',')).join(' ');
+  svg += `<polygon points="${v5pts}" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="2"/>`;
+
+  // V5 dots
+  CATEGORIES.forEach((c,i) => {
+    const [x,y] = point(c.v5,i);
+    svg += `<circle cx="${x}" cy="${y}" r="4" fill="${c.color}" stroke="#0f172a" stroke-width="1.5"/>`;
+  });
+
+  // Center scores
+  svg += `<text x="${cx}" y="${cy-6}" fill="#e2e8f0" font-size="22" font-weight="900" text-anchor="middle">92</text>`;
+  svg += `<text x="${cx}" y="${cy+10}" fill="#64748b" font-size="9" text-anchor="middle">V5</text>`;
+
+  // Legend
+  svg += `<rect x="20" y="370" width="12" height="3" fill="#475569" rx="1"/>
+    <text x="36" y="377" fill="#64748b" font-size="9">V4 (88)</text>
+    <rect x="90" y="368" width="12" height="5" fill="#3b82f6" rx="1"/>
+    <text x="106" y="377" fill="#94a3b8" font-size="9">V5 (92)</text>`;
+
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+}
+
+// RENDER LINE CHART
+function renderLineChart() {
+  const versions = [
+    {label:'V1', score:54, files:81, date:''},
+    {label:'V2', score:69, files:119, date:'מאי 7'},
+    {label:'V3', score:81, files:206, date:'מאי 25'},
+    {label:'V4', score:88, files:210, date:'יוני 7'},
+    {label:'V5', score:92, files:255, date:'יולי 12'},
+  ];
+
+  const svg = document.getElementById('version-line-chart');
+  const W=860, H=280, padL=60, padR=40, padT=30, padB=60;
+  const gW = W-padL-padR, gH = H-padT-padB;
+  const n = versions.length;
+  const xs = versions.map((_,i) => padL + (i/(n-1))*gW);
+  const ys = v => padT + gH - ((v-40)/(100-40))*gH;
+
+  let html = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
+
+  // Grid
+  [50,60,70,80,90,100].forEach(v => {
+    const y = ys(v);
+    html += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#1e293b" stroke-width="1"/>`;
+    html += `<text x="${padL-6}" y="${y+4}" fill="#475569" font-size="10" text-anchor="end">${v}</text>`;
+  });
+
+  // Score line
+  const pts = xs.map((x,i) => `${x},${ys(versions[i].score)}`).join(' ');
+  html += `<polyline points="${pts}" fill="none" stroke="#3b82f6" stroke-width="2.5"/>`;
+
+  // File count bars (secondary)
+  versions.forEach((v,i) => {
+    const barH = (v.files/280)*60;
+    const x = xs[i]-10;
+    html += `<rect x="${x}" y="${H-padB-barH}" width="20" height="${barH}" fill="rgba(99,102,241,0.15)" rx="2"/>`;
+  });
+
+  // Dots + labels
+  versions.forEach((v,i) => {
+    const x = xs[i], y = ys(v.score);
+    const isV5 = i===4;
+    html += `<circle cx="${x}" cy="${y}" r="${isV5?8:5}" fill="${isV5?'#38bdf8':'#6366f1'}" stroke="#0f172a" stroke-width="2"/>`;
+    html += `<text x="${x}" y="${y-14}" fill="${isV5?'#38bdf8':'#e2e8f0'}" font-size="${isV5?15:12}" font-weight="800" text-anchor="middle">${v.score}</text>`;
+    html += `<text x="${x}" y="${H-padB+16}" fill="#64748b" font-size="11" font-weight="700" text-anchor="middle">${v.label}</text>`;
+    html += `<text x="${x}" y="${H-padB+28}" fill="#475569" font-size="9" text-anchor="middle">${v.date}</text>`;
+    html += `<text x="${x}" y="${H-padB+40}" fill="#334155" font-size="9" text-anchor="middle">${v.files} files</text>`;
+  });
+
+  html += '</svg>';
+  svg.outerHTML = html;
+}
+
+// RENDER DELTA CHART
+function renderDeltaChart() {
+  const el = document.getElementById('delta-chart');
+  if(!el) return;
+  el.innerHTML = CATEGORIES.map(c => {
+    const delta = c.v5 - c.v4;
+    const pct = (delta/15)*100;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:#94a3b8">${c.emoji} ${c.label}</span>
+        <span style="font-weight:700;color:var(--green)">+${delta}</span>
+      </div>
+      <div style="background:#0f172a;border-radius:4px;height:8px;overflow:hidden">
+        <div style="width:${pct}%;background:${c.color};height:8px;border-radius:4px;transition:width 1s"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// RENDER CATEGORIES LIST
+function renderCategoriesList() {
+  const el = document.getElementById('categories-list');
+  if(!el) return;
+  el.innerHTML = CATEGORIES.map((c,i) => {
+    const delta = c.v5 - c.v4;
+    const pillsHtml = c.pills.map(p => `<span class="feature-pill ${pillClass(p)}">${p}</span>`).join('');
+    return `
+      <div>
+        <div class="cat-row" onclick="toggleCat(${i})">
+          <div class="cat-row-left">
+            <span class="cat-emoji">${c.emoji}</span>
+            <span class="cat-name">${c.label}</span>
+          </div>
+          <div class="cat-row-right">
+            <div class="version-score"><div class="vs-num vs-v4">${c.v4}</div><div class="vs-label">V4</div></div>
+            <div style="color:#334155;font-size:18px">→</div>
+            <div class="version-score"><div class="vs-num vs-v5">${c.v5}</div><div class="vs-label">V5</div></div>
+            <span class="vs-delta">+${delta}</span>
+            <span style="color:#475569;font-size:10px" id="cat-arrow-${i}">▼</span>
+          </div>
+        </div>
+        <div class="cat-detail" id="cat-detail-${i}">
+          <div class="cat-desc">${c.v5notes}</div>
+          <div class="cat-pills">${pillsHtml}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleCat(i) {
+  const d = document.getElementById(`cat-detail-${i}`);
+  const a = document.getElementById(`cat-arrow-${i}`);
+  d.classList.toggle('open');
+  a.textContent = d.classList.contains('open') ? '▲' : '▼';
+}
+
+// RENDER COMPETITOR TABLE
+function renderCompTable() {
+  const tbody = document.getElementById('comp-table-body');
+  if(!tbody) return;
+  tbody.innerHTML = COMPETITORS.map(c => {
+    const fields = [c.ai, c.gis, c.plan, c.ar, c.multi, c.b2b, c.acc, c.rt, c.arch, c.open];
+    const avgVal = avg(c);
+    const cells = fields.map(v => `<td><span class="score-dot ${scoreColor(v)}">${v}</span></td>`).join('');
+    const avgColor = parseFloat(avgVal)>=7?'var(--green)':parseFloat(avgVal)>=5?'var(--amber)':'var(--red)';
+    return `<tr class="${c.highlight?'highlight':''}">
+      <td>${c.highlight?'<strong>'+c.name+'</strong>':c.name}</td>
+      ${cells}
+      <td><strong style="color:${avgColor}">${avgVal}</strong></td>
+    </tr>`;
+  }).join('');
+}
+
+// RENDER WAVES
+function renderWaves() {
+  const el = document.getElementById('waves-list');
+  if(!el) return;
+  el.innerHTML = WAVES.map(w => {
+    const sc = waveStatusClass(w.status);
+    const statusLabel = w.status==='in-place'?'✅ בוצע':w.status==='partial'?'⚠️ חלקי':'⏳ בתכנון';
+    const itemsHtml = w.items.map(item => `
+      <div class="wave-item">
+        <div class="wave-dot ${dotClass(item.s)}"></div>
+        <span>${item.title}</span>
+      </div>`).join('');
+    return `<div class="wave-card">
+      <div class="wave-header">
+        <span class="wave-id ${sc}">${w.id}</span>
+        <span class="wave-title">${w.title}</span>
+        <span style="margin-right:auto;font-size:12px;color:${sc==='inplace'?'var(--green)':sc==='partial'?'var(--amber)':'#64748b'}">${statusLabel}</span>
+      </div>
+      <div class="wave-goal">מטרה: ${w.goal}</div>
+      <div class="wave-items">${itemsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// NAV
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// INIT
+document.addEventListener('DOMContentLoaded', () => {
+  renderProgressBars();
+  renderRadar();
+  renderCategoriesList();
+  renderCompTable();
+  renderWaves();
+  renderDeltaChart();
+  setTimeout(renderLineChart, 100);
+});
+</script>
+</body>
+</html>
